@@ -74,8 +74,8 @@ export default function Dashboard() {
     <>
       {/* Main header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold">Tasks Dashboard</h2>
-        <p className="text-gray-500 mt-1 dark:text-gray-400">Manage and organize your tasks efficiently</p>
+        <h2 className="text-2xl font-bold truncate">Tasks Dashboard</h2>
+        <p className="text-gray-500 mt-1 dark:text-gray-400 max-w-full break-words">Manage and organize your tasks efficiently</p>
       </div>
 
       {/* Task status summary */}

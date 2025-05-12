@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Sun, Moon, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,16 +11,24 @@ interface HeaderProps {
 
 export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-
-  // Define a direct theme toggle function that doesn't rely on context
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  useEffect(() => {
+    // Check current DOM state on mount
+    const darkModeActive = document.documentElement.classList.contains('dark');
+    setIsDarkMode(darkModeActive);
+  }, []);
+  
+  // Direct theme toggle function using DOM
   const handleThemeToggle = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
     
-    // Update the DOM directly for immediate feedback
+    // Update the DOM directly
     const root = document.documentElement;
     const bodyElement = document.body;
     
-    if (newTheme === 'dark') {
+    if (newDarkMode) {
       root.classList.add('dark');
       bodyElement.classList.add('dark');
     } else {
@@ -27,11 +36,8 @@ export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
       bodyElement.classList.remove('dark');
     }
     
-    // Save the theme preference
-    localStorage.setItem('theme', newTheme);
-    
-    // Also call the context's toggle function to keep state in sync
-    toggleTheme();
+    // Save preference to localStorage
+    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
   };
 
   return (
@@ -60,9 +66,9 @@ export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
             size="icon" 
             onClick={handleThemeToggle}
             className="text-gray-700 dark:text-gray-300"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
           <Avatar className="h-8 w-8">
             <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100" alt="User" />
