@@ -20,7 +20,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        "fixed z-10 inset-y-0 left-0 w-64 transition-transform duration-300 transform border-r border-gray-200 dark:border-gray-700 overflow-y-auto pt-16 lg:pt-0 bg-white dark:bg-gray-800",
+        "fixed z-10 inset-y-0 left-0 w-64 transition-transform duration-300 transform border-r border-gray-200 dark:border-gray-700 overflow-y-auto pt-20 lg:pt-20 bg-white dark:bg-gray-800",
         isOpen ? "translate-x-0" : "-translate-x-full",
         "lg:relative lg:inset-auto lg:translate-x-0"
       )}
@@ -31,26 +31,26 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <nav className="space-y-1">
             <Link href="/">
               <div className={cn(
-                "flex items-center px-3 py-2 text-sm rounded-lg font-medium cursor-pointer",
+                "flex items-center px-4 py-2.5 text-sm rounded-lg font-medium cursor-pointer",
                 location === "/" 
                   ? "bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400" 
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               )}>
-                <i className="ri-dashboard-line mr-3 text-lg"></i>
-                Dashboard
+                <i className="ri-dashboard-line mr-3 text-lg shrink-0"></i>
+                <span className="truncate">Dashboard</span>
               </div>
             </Link>
-            <a href="#" className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
-              <i className="ri-calendar-line mr-3 text-lg"></i>
-              Calendar
+            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
+              <i className="ri-calendar-line mr-3 text-lg shrink-0"></i>
+              <span className="truncate">Calendar</span>
             </a>
-            <a href="#" className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
-              <i className="ri-team-line mr-3 text-lg"></i>
-              Team
+            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
+              <i className="ri-team-line mr-3 text-lg shrink-0"></i>
+              <span className="truncate">Team</span>
             </a>
-            <a href="#" className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
-              <i className="ri-file-list-line mr-3 text-lg"></i>
-              Reports
+            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
+              <i className="ri-file-list-line mr-3 text-lg shrink-0"></i>
+              <span className="truncate">Reports</span>
             </a>
           </nav>
         </div>
@@ -62,16 +62,16 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               <a 
                 key={project.id}
                 href="#" 
-                className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center justify-between px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <span className="flex items-center">
+                <span className="flex items-center min-w-0">
                   <span 
-                    className="w-2 h-2 rounded-full mr-3" 
+                    className="w-2 h-2 rounded-full mr-3 shrink-0" 
                     style={{ backgroundColor: project.color }}
                   ></span>
-                  {project.name}
+                  <span className="truncate">{project.name}</span>
                 </span>
-                <span className="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                <span className="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full dark:bg-gray-700 dark:text-gray-300 shrink-0 ml-2">
                   {/* Task count would be dynamically generated in a real implementation */}
                   {project.id === 1 ? 12 : project.id === 2 ? 8 : 3}
                 </span>
