@@ -8,16 +8,22 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+// Create context with default values to avoid undefined errors
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "light",
+  setTheme: () => {},
+  toggleTheme: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check for saved theme preference or system preference
+  const [theme, setTheme] = useState<Theme>("light");
+  
+  // Initialize theme after component is mounted
+  useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as Theme | null;
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    
-    return savedTheme || (systemPrefersDark ? "dark" : "light");
-  });
+    setTheme(savedTheme || (systemPrefersDark ? "dark" : "light"));
+  }, []);
   
   useEffect(() => {
     // Update the data-theme attribute on the document element
@@ -45,11 +51,5 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  
-  return context;
+  return useContext(ThemeContext);
 }

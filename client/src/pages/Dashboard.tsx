@@ -148,12 +148,15 @@ export default function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select onValueChange={setSelectedProject} value={selectedProject || ""}>
+          <Select 
+            onValueChange={(value) => setSelectedProject(value === "all" ? null : value)}
+            value={selectedProject || "all"}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Projects</SelectItem>
+              <SelectItem value="all">All Projects</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id.toString()}>
                   {project.name}

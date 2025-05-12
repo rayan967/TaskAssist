@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Project } from "@shared/schema";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,15 +30,15 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Menu</p>
           <nav className="space-y-1">
             <Link href="/">
-              <a className={cn(
-                "flex items-center px-3 py-2 text-sm rounded-lg font-medium",
+              <div className={cn(
+                "flex items-center px-3 py-2 text-sm rounded-lg font-medium cursor-pointer",
                 location === "/" 
                   ? "bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400" 
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               )}>
                 <i className="ri-dashboard-line mr-3 text-lg"></i>
                 Dashboard
-              </a>
+              </div>
             </Link>
             <a href="#" className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
               <i className="ri-calendar-line mr-3 text-lg"></i>
