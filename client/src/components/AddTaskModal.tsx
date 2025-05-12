@@ -12,12 +12,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { insertTaskSchema, Task } from "@shared/schema";
+import { insertTaskSchema, Task, Project } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -32,22 +33,47 @@ const formSchema = insertTaskSchema.extend({
 type FormValues = z.infer<typeof formSchema>;
 
 export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps) {
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: editingTask?.title || "",
-      description: editingTask?.description || "",
-      projectId: editingTask?.projectId || 1,
-      priority: editingTask?.priority || "medium",
-      dueDate: editingTask?.dueDate ? new Date(editingTask.dueDate) : undefined,
-      completed: editingTask?.completed || false,
-      starred: editingTask?.starred || false,
+      title: "",
+      description: "",
+      projectId: 1,
+      priority: "medium",
+      dueDate: undefined,
+      completed: false,
+      starred: false,
     },
   });
+  
+  // Update form when editingTask changes
+  useEffect(() => {
+    if (editingTask) {
+      form.reset({
+        title: editingTask.title,
+        description: editingTask.description || "",
+        projectId: editingTask.projectId || 1,
+        priority: editingTask.priority || "medium",
+        dueDate: editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
+        completed: editingTask.completed,
+        starred: editingTask.starred,
+      });
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        projectId: 1,
+        priority: "medium",
+        dueDate: undefined,
+        completed: false,
+        starred: false,
+      });
+    }
+  }, [editingTask, form]);
   
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: FormValues) => {
@@ -137,7 +163,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter task details" rows={3} {...field} />
+                    <Textarea placeholder="Enter task details" rows={3} value={field.value || ""} onChange={field.onChange} name={field.name} ref={field.ref} onBlur={field.onBlur} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -153,7 +179,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                     <FormLabel>Project</FormLabel>
                     <Select 
                       onValueChange={(value) => field.onChange(parseInt(value))}
-                      defaultValue={field.value?.toString()}
+                      value={field.value ? field.value.toString() : "1"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -161,7 +187,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {projects.map((project) => (
+                        {projects.map((project: Project) => (
                           <SelectItem key={project.id} value={project.id.toString()}>
                             {project.name}
                           </SelectItem>
