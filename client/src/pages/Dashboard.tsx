@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ListChecks, CheckCircle, Clock, PlusIcon, Search } from "lucide-react";
-import { Task } from "@shared/schema";
+import { Task, Project, TaskSummary } from "@shared/schema";
 
 export default function Dashboard() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -17,22 +17,22 @@ export default function Dashboard() {
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   
   // Fetch tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
   
   // Fetch projects
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
   
   // Fetch task summary
-  const { data: taskSummary = { total: 0, completed: 0, pending: 0 } } = useQuery({
+  const { data: taskSummary = { total: 0, completed: 0, pending: 0 } } = useQuery<TaskSummary>({
     queryKey: ['/api/tasks/summary'],
   });
   
   // Filter tasks based on active filter, search query, and selected project
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = tasks.filter((task: Task) => {
     // Filter by status
     if (activeFilter === "active" && task.completed) return false;
     if (activeFilter === "completed" && !task.completed) return false;
@@ -65,9 +65,9 @@ export default function Dashboard() {
     setEditingTask(undefined);
   };
   
-  const getProjectById = (projectId?: number) => {
+  const getProjectById = (projectId?: number | null) => {
     if (!projectId) return undefined;
-    return projects.find(project => project.id === projectId);
+    return projects.find((project: Project) => project.id === projectId);
   };
   
   return (
@@ -157,7 +157,7 @@ export default function Dashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Projects</SelectItem>
-              {projects.map((project) => (
+              {projects.map((project: Project) => (
                 <SelectItem key={project.id} value={project.id.toString()}>
                   {project.name}
                 </SelectItem>
@@ -176,7 +176,7 @@ export default function Dashboard() {
           ))
         ) : filteredTasks.length > 0 ? (
           // Show tasks
-          filteredTasks.map((task) => (
+          filteredTasks.map((task: Task) => (
             <TaskCard 
               key={task.id} 
               task={task} 

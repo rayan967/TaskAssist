@@ -13,7 +13,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [location] = useLocation();
   
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
 
@@ -58,7 +58,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Projects</p>
           <nav className="space-y-1">
-            {projects.map((project) => (
+            {projects.map((project: Project) => (
               <a 
                 key={project.id}
                 href="#" 
