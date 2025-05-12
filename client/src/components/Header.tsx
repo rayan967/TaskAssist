@@ -11,6 +11,29 @@ interface HeaderProps {
 export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
+  // Define a direct theme toggle function that doesn't rely on context
+  const handleThemeToggle = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    
+    // Update the DOM directly for immediate feedback
+    const root = document.documentElement;
+    const bodyElement = document.body;
+    
+    if (newTheme === 'dark') {
+      root.classList.add('dark');
+      bodyElement.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      bodyElement.classList.remove('dark');
+    }
+    
+    // Save the theme preference
+    localStorage.setItem('theme', newTheme);
+    
+    // Also call the context's toggle function to keep state in sync
+    toggleTheme();
+  };
+
   return (
     <header className="w-full shadow-sm border-b transition-all fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -35,8 +58,9 @@ export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={toggleTheme}
+            onClick={handleThemeToggle}
             className="text-gray-700 dark:text-gray-300"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
