@@ -37,7 +37,7 @@ export function Layout({ children }: LayoutProps) {
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         
         <main 
-          className="flex-1 overflow-y-auto pt-20 pb-24 lg:pt-6 px-4 md:px-6 lg:px-8 py-6"
+          className="flex-1 overflow-y-auto pt-24 pb-24 lg:pt-16 px-4 md:px-6 lg:px-8 py-6"
           onClick={() => {
             if (window.innerWidth < 1024 && sidebarOpen) {
               setSidebarOpen(false);
