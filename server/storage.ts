@@ -134,7 +134,8 @@ export class MemStorage implements IStorage {
         projectId: 2,
         dueDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
         priority: "high",
-        starred: false
+        starred: false,
+        assignedTo: 3
       },
       {
         id: this.taskId++,
@@ -144,7 +145,8 @@ export class MemStorage implements IStorage {
         projectId: 3,
         dueDate: inThreeDays,
         priority: "medium",
-        starred: true
+        starred: true,
+        assignedTo: 4
       }
     ];
     
