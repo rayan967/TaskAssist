@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -75,9 +75,19 @@ const teamMembers = [
 ];
 
 export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: AssignTaskModalProps) {
+  // Use useEffect to ensure date is set when the component is rendered with editingTask
   const [date, setDate] = useState<Date | undefined>(
     editingTask?.dueDate ? new Date(editingTask.dueDate as any) : undefined
   );
+  
+  // Update the date when editingTask changes
+  useEffect(() => {
+    if (editingTask?.dueDate) {
+      setDate(new Date(editingTask.dueDate as any));
+    } else {
+      setDate(undefined);
+    }
+  }, [editingTask]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -240,7 +250,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                     <FormLabel>Priority</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value || "Medium"}
+                      value={field.value || "Medium"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -266,7 +276,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                     <FormLabel>Project</FormLabel>
                     <Select 
                       onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)} 
-                      defaultValue={field.value ? String(field.value) : "none"}
+                      value={field.value ? String(field.value) : "none"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -320,7 +330,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                     <FormLabel>Assign To</FormLabel>
                     <Select 
                       onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
-                      defaultValue={field.value ? String(field.value) : undefined}
+                      value={field.value ? String(field.value) : undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
