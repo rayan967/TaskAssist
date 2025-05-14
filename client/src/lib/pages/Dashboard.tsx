@@ -270,14 +270,14 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Project</p>
                   <Select
-                    value={selectedProject || ""}
-                    onValueChange={(value) => setSelectedProject(value || null)}
+                    value={selectedProject || "all"}
+                    onValueChange={(value) => setSelectedProject(value !== "all" ? value : null)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All Projects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Projects</SelectItem>
+                      <SelectItem value="all">All Projects</SelectItem>
                       {projects.map((project: Project) => (
                         <SelectItem key={project.id} value={String(project.id)}>
                           {project.name}
@@ -290,14 +290,14 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Priority</p>
                   <Select
-                    value={priorityFilter || ""}
-                    onValueChange={(value) => setPriorityFilter(value || null)}
+                    value={priorityFilter || "any"}
+                    onValueChange={(value) => setPriorityFilter(value !== "any" ? value : null)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Any Priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any Priority</SelectItem>
+                      <SelectItem value="any">Any Priority</SelectItem>
                       <SelectItem value="High">High</SelectItem>
                       <SelectItem value="Medium">Medium</SelectItem>
                       <SelectItem value="Low">Low</SelectItem>

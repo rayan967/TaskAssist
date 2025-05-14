@@ -265,8 +265,8 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                   <FormItem>
                     <FormLabel>Project</FormLabel>
                     <Select 
-                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
-                      defaultValue={field.value ? String(field.value) : undefined}
+                      onValueChange={(value) => field.onChange(value && value !== "none" ? parseInt(value) : null)} 
+                      defaultValue={field.value ? String(field.value) : "none"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -274,7 +274,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={String(project.id)}>
                             {project.name}
