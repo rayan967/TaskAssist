@@ -40,18 +40,32 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 <span className="truncate">Dashboard</span>
               </div>
             </Link>
-            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
-              <i className="ri-calendar-line mr-3 text-lg shrink-0"></i>
-              <span className="truncate">Calendar</span>
-            </a>
-            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
-              <i className="ri-team-line mr-3 text-lg shrink-0"></i>
-              <span className="truncate">Team</span>
-            </a>
-            <a href="#" className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700">
+            <Link href="/calendar">
+              <div className={cn(
+                "flex items-center px-4 py-2.5 text-sm rounded-lg font-medium cursor-pointer",
+                location === "/calendar" 
+                  ? "bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400" 
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              )}>
+                <i className="ri-calendar-line mr-3 text-lg shrink-0"></i>
+                <span className="truncate">Calendar</span>
+              </div>
+            </Link>
+            <Link href="/team">
+              <div className={cn(
+                "flex items-center px-4 py-2.5 text-sm rounded-lg font-medium cursor-pointer",
+                location === "/team" 
+                  ? "bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400" 
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              )}>
+                <i className="ri-team-line mr-3 text-lg shrink-0"></i>
+                <span className="truncate">Team</span>
+              </div>
+            </Link>
+            <div className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer">
               <i className="ri-file-list-line mr-3 text-lg shrink-0"></i>
               <span className="truncate">Reports</span>
-            </a>
+            </div>
           </nav>
         </div>
         
