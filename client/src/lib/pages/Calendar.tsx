@@ -85,7 +85,7 @@ export default function Calendar() {
   
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-8 mt-6">
         <h2 className="text-2xl font-bold mb-2">Tasks Calendar</h2>
         <p className="text-gray-500 dark:text-gray-400">
           View and manage your tasks in a calendar view

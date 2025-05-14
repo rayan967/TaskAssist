@@ -15,9 +15,12 @@ import {
   PlusIcon,
   User,
   Users,
+  CheckCircle2,
 } from "lucide-react";
 import { User as UserType, Task, Project } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
+import { AddTaskModal } from "@/components/AddTaskModal";
+import { AssignTaskModal } from "@/components/AssignTaskModal";
 
 // Mock team members (in a real app this would be fetched from the backend)
 const teamMembers = [
@@ -81,6 +84,8 @@ const teamMembers = [
 export default function Team() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedMember, setSelectedMember] = useState<number | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   
   // Fetch tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
@@ -131,15 +136,39 @@ export default function Team() {
     return teamMembers.find(member => member.id === id);
   };
   
+  // Get tasks assigned to member
+  const getTasksForMember = (memberId: number) => {
+    return tasks.filter(task => task.assignedTo === memberId);
+  };
+  
   // Handle view member details
   const handleViewMember = (id: number) => {
     setSelectedMember(id);
     setActiveTab("details");
   };
   
+  // Handle assign task
+  const handleAssignTask = (memberId?: number) => {
+    setEditingTask(undefined);
+    setSelectedMember(memberId || null);
+    setShowTaskModal(true);
+  };
+  
+  // Handle edit task
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setShowTaskModal(true);
+  };
+  
+  // Close modal
+  const handleCloseModal = () => {
+    setShowTaskModal(false);
+    setEditingTask(undefined);
+  };
+  
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-8 mt-6">
         <h2 className="text-2xl font-bold mb-2">Team Management</h2>
         <p className="text-gray-500 dark:text-gray-400">
           Manage your team and track progress on tasks and projects

@@ -1,0 +1,344 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Task, Project, insertTaskSchema } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+
+// Schema for the form
+const formSchema = insertTaskSchema.extend({
+  assignedTo: z.number().optional(),
+});
+
+// Type for the form values
+type FormValues = z.infer<typeof formSchema>;
+
+interface AssignTaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  memberId?: number;
+  editingTask?: Task;
+}
+
+// Mock team members (in a real app, this would come from the API)
+const teamMembers = [
+  {
+    id: 1,
+    name: "Alex Johnson",
+    role: "Project Manager",
+  },
+  {
+    id: 2,
+    name: "Sarah Williams",
+    role: "UI/UX Designer",
+  },
+  {
+    id: 3,
+    name: "Michael Chen",
+    role: "Developer",
+  },
+  {
+    id: 4,
+    name: "Jessica Lee",
+    role: "QA Engineer",
+  },
+  {
+    id: 5,
+    name: "David Kim",
+    role: "Backend Developer",
+  }
+];
+
+export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: AssignTaskModalProps) {
+  const [date, setDate] = useState<Date | undefined>(
+    editingTask?.dueDate ? new Date(editingTask.dueDate as any) : undefined
+  );
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Get projects for the dropdown
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+  });
+  
+  // Set up the form
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: editingTask?.title || "",
+      description: editingTask?.description || "",
+      completed: editingTask?.completed || false,
+      projectId: editingTask?.projectId || null,
+      dueDate: editingTask?.dueDate || null,
+      priority: editingTask?.priority || "Medium",
+      starred: editingTask?.starred || false,
+      assignedTo: memberId || (editingTask?.assignedTo as number | undefined),
+    }
+  });
+  
+  // Create new task mutation
+  const createMutation = useMutation({
+    mutationFn: async (newTask: FormValues) => {
+      // Include the date if set
+      if (date) {
+        newTask.dueDate = date as any;
+      }
+      
+      return await apiRequest<Task>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(newTask),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/summary'] });
+      toast({
+        title: "Task assigned successfully",
+        description: "The task has been assigned to the team member.",
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to assign task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update task mutation
+  const updateMutation = useMutation({
+    mutationFn: async (updatedTask: FormValues) => {
+      // Include the date if set
+      if (date) {
+        updatedTask.dueDate = date as any;
+      }
+      
+      return await apiRequest<Task>(`/api/tasks/${editingTask!.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updatedTask),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks/summary'] });
+      toast({
+        title: "Task updated successfully",
+        description: "The task has been updated.",
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle form submission
+  const onSubmit = (values: FormValues) => {
+    if (editingTask) {
+      updateMutation.mutate(values);
+    } else {
+      createMutation.mutate(values);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{editingTask ? "Edit Task" : "Assign New Task"}</DialogTitle>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Task Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter task title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter task description" 
+                      className="min-h-[100px]" 
+                      {...field} 
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value || "Medium"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Low">Low</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)} 
+                      defaultValue={field.value ? String(field.value) : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={String(project.id)}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormItem className="flex flex-col gap-1">
+                <FormLabel>Due Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="justify-start text-left font-normal w-full"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </FormItem>
+              
+              <FormField
+                control={form.control}
+                name="assignedTo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assign To</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                      defaultValue={field.value ? String(field.value) : undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team member" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={String(member.id)}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {editingTask ? "Update Task" : "Assign Task"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
