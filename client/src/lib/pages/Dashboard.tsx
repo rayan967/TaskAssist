@@ -440,6 +440,7 @@ export default function Dashboard() {
               task={task} 
               project={getProjectById(task.projectId)}
               onEdit={handleEditTask}
+              onEditAssigned={handleEditAssignedTask}
             />
           ))
         ) : (
