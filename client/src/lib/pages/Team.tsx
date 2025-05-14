@@ -424,86 +424,204 @@ export default function Team() {
                 </CardContent>
               </Card>
               
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Performance Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Tasks Completion</span>
-                        <span>
-                          {getMemberById(selectedMember)?.tasksCompleted}/{getMemberById(selectedMember)?.tasksAssigned}
-                        </span>
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Performance Overview</CardTitle>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAssignTask(selectedMember)}
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Assign Task
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Tasks Completion</span>
+                          <span>
+                            {getMemberById(selectedMember)?.tasksCompleted}/{getMemberById(selectedMember)?.tasksAssigned}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={(getMemberById(selectedMember)?.tasksCompleted! / getMemberById(selectedMember)?.tasksAssigned!) * 100} 
+                          className="h-2"
+                        />
                       </div>
-                      <Progress 
-                        value={(getMemberById(selectedMember)?.tasksCompleted! / getMemberById(selectedMember)?.tasksAssigned!) * 100} 
-                        className="h-2"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col items-center">
-                            <h4 className="text-sm font-medium text-gray-500 mb-1">Completed Tasks</h4>
-                            <p className="text-2xl font-bold">{getMemberById(selectedMember)?.tasksCompleted}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
                       
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex flex-col items-center">
-                            <h4 className="text-sm font-medium text-gray-500 mb-1">Assigned Tasks</h4>
-                            <p className="text-2xl font-bold">{getMemberById(selectedMember)?.tasksAssigned}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col items-center">
+                              <h4 className="text-sm font-medium text-gray-500 mb-1">Completed Tasks</h4>
+                              <p className="text-2xl font-bold">{getMemberById(selectedMember)?.tasksCompleted}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col items-center">
+                              <h4 className="text-sm font-medium text-gray-500 mb-1">Assigned Tasks</h4>
+                              <p className="text-2xl font-bold">{getMemberById(selectedMember)?.tasksAssigned}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-3">Recent Activity</h4>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Assigned Tasks</CardTitle>
+                    <Badge variant="outline">
+                      {getTasksForMember(selectedMember).length} tasks
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    {getTasksForMember(selectedMember).length > 0 ? (
                       <div className="space-y-3">
-                        <div className="flex items-start space-x-3">
-                          <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
-                            <CheckCircleIcon className="h-5 w-5 text-primary-500" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Completed task "Update dashboard UI"</p>
-                            <p className="text-sm text-gray-500">2 hours ago</p>
-                          </div>
+                        {getTasksForMember(selectedMember).map(task => {
+                          const project = projects.find(p => p.id === task.projectId);
+                          
+                          return (
+                            <div
+                              key={task.id}
+                              className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                              onClick={() => handleEditTask(task)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                    task.completed 
+                                      ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+                                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                                  }`}
+                                >
+                                  {task.completed && <CheckCircle2 className="w-3 h-3" />}
+                                </div>
+                                <div>
+                                  <p className={`font-medium ${
+                                    task.completed ? 'line-through text-gray-400 dark:text-gray-500' : ''
+                                  }`}>
+                                    {task.title}
+                                  </p>
+                                  {project && (
+                                    <div className="flex items-center mt-1">
+                                      <span
+                                        className="w-2 h-2 rounded-full mr-1.5"
+                                        style={{ backgroundColor: project.color }}
+                                      ></span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {project.name}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {task.dueDate && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    Due {new Date(task.dueDate as any).toLocaleDateString()}
+                                  </span>
+                                )}
+                                
+                                {task.priority && (
+                                  <Badge
+                                    variant={
+                                      task.priority === "High"
+                                        ? "destructive"
+                                        : task.priority === "Medium"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {task.priority}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3 dark:bg-gray-800">
+                          <i className="ri-clipboard-line text-xl text-gray-500"></i>
                         </div>
-                        
-                        <div className="flex items-start space-x-3">
-                          <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
-                            <Calendar className="h-5 w-5 text-primary-500" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Scheduled meeting with Design team</p>
-                            <p className="text-sm text-gray-500">Yesterday at 3:30 PM</p>
-                          </div>
+                        <h3 className="text-base font-medium mb-1">No tasks assigned</h3>
+                        <p className="text-sm">
+                          This team member doesn't have any tasks assigned yet.
+                        </p>
+                        <Button 
+                          onClick={() => handleAssignTask(selectedMember)} 
+                          className="mt-4" 
+                          size="sm"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Assign Task
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
+                          <CheckCircle2 className="h-5 w-5 text-primary-500" />
                         </div>
-                        
-                        <div className="flex items-start space-x-3">
-                          <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
-                            <MessageSquare className="h-5 w-5 text-primary-500" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Commented on "API Integration Plan"</p>
-                            <p className="text-sm text-gray-500">2 days ago</p>
-                          </div>
+                        <div>
+                          <p className="font-medium">Completed task "Update dashboard UI"</p>
+                          <p className="text-sm text-gray-500">2 hours ago</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
+                          <Calendar className="h-5 w-5 text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Scheduled meeting with Design team</p>
+                          <p className="text-sm text-gray-500">Yesterday at 3:30 PM</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
+                          <MessageSquare className="h-5 w-5 text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Commented on "API Integration Plan"</p>
+                          <p className="text-sm text-gray-500">2 days ago</p>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Task assignment modal */}
+      <AssignTaskModal
+        isOpen={showTaskModal}
+        onClose={handleCloseModal}
+        memberId={selectedMember || undefined}
+        editingTask={editingTask}
+      />
     </>
   );
 }

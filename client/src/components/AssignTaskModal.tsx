@@ -110,10 +110,18 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
         newTask.dueDate = date as any;
       }
       
-      return await apiRequest<Task>('/api/tasks', {
+      // Use apiRequest with correct parameters
+      const response = await fetch('/api/tasks', {
         method: 'POST',
-        body: JSON.stringify(newTask),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTask)
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -141,10 +149,18 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
         updatedTask.dueDate = date as any;
       }
       
-      return await apiRequest<Task>(`/api/tasks/${editingTask!.id}`, {
+      // Use fetch to make the PATCH request
+      const response = await fetch(`/api/tasks/${editingTask!.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(updatedTask),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTask)
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
