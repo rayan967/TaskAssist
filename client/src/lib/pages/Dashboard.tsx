@@ -21,10 +21,13 @@ type SortDirection = "asc" | "desc";
 
 export default function Dashboard() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  // To filter by assignment - added for showing only my tasks or assigned tasks
+  const [assignmentFilter, setAssignmentFilter] = useState<string>("my");
   
   // Sorting state
   const [sortBy, setSortBy] = useState<SortOption>("none");
@@ -56,6 +59,10 @@ export default function Dashboard() {
       // Filter by status
       if (activeFilter === "active" && task.completed) return false;
       if (activeFilter === "completed" && !task.completed) return false;
+      
+      // Filter by assignment
+      if (assignmentFilter === "my" && task.assignedTo) return false;
+      if (assignmentFilter === "assigned" && !task.assignedTo) return false;
       
       // Filter by search query
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -137,6 +144,7 @@ export default function Dashboard() {
     setPriorityFilter(null);
     setDateRange({});
     setSortBy("none");
+    setAssignmentFilter("my");
   };
   
   const handleAddTask = () => {
@@ -213,31 +221,60 @@ export default function Dashboard() {
 
       {/* Task filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
-          <Button
-            variant={activeFilter === "all" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("all")}
-            className={activeFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            All
-          </Button>
-          <Button
-            variant={activeFilter === "active" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("active")}
-            className={activeFilter !== "active" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            Active
-          </Button>
-          <Button
-            variant={activeFilter === "completed" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("completed")}
-            className={activeFilter !== "completed" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            Completed
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
+            <Button
+              variant={activeFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+              className={activeFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              All
+            </Button>
+            <Button
+              variant={activeFilter === "active" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("active")}
+              className={activeFilter !== "active" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Active
+            </Button>
+            <Button
+              variant={activeFilter === "completed" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("completed")}
+              className={activeFilter !== "completed" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Completed
+            </Button>
+          </div>
+          
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
+            <Button
+              variant={assignmentFilter === "my" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("my")}
+              className={assignmentFilter !== "my" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              My Tasks
+            </Button>
+            <Button
+              variant={assignmentFilter === "assigned" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("assigned")}
+              className={assignmentFilter !== "assigned" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Assigned Tasks
+            </Button>
+            <Button
+              variant={assignmentFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("all")}
+              className={assignmentFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              All Tasks
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-2 items-center">

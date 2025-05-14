@@ -2,7 +2,7 @@ import { Task, Project } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, MoreVertical } from "lucide-react";
+import { Star, MoreVertical, UserCircle } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,13 +17,24 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 
+// Hardcoded team members (in a real app, this would come from the API)
+const teamMembers = [
+  { id: 1, name: "John Smith", role: "Product Manager" },
+  { id: 2, name: "Emily Johnson", role: "UX Designer" },
+  { id: 3, name: "David Lee", role: "Developer" },
+  { id: 4, name: "Lisa Chen", role: "Marketing Specialist" }
+];
+
 interface TaskCardProps {
   task: Task;
   project?: Project;
   onEdit: (task: Task) => void;
+  onEditAssigned?: (task: Task) => void; // Added for assigned tasks editing
 }
 
-export function TaskCard({ task, project, onEdit }: TaskCardProps) {
+export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProps) {
+  // Find the assignee if task is assigned
+  const assignee = task.assignedTo ? teamMembers.find(member => member.id === task.assignedTo) : null;
   const [isHovered, setIsHovered] = useState(false);
   
   const getTimeLabel = () => {
@@ -133,9 +144,20 @@ export function TaskCard({ task, project, onEdit }: TaskCardProps) {
     >
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-4">
-          <Badge variant="outline" className={getBadgeStyles()}>
-            {project?.name || "Task"}
-          </Badge>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge variant="outline" className={getBadgeStyles()}>
+              {project?.name || "Task"}
+            </Badge>
+            
+            {task.assignedTo && (
+              <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                <span className="flex items-center gap-1">
+                  <UserCircle className="h-3 w-3" />
+                  Assigned to {assignee?.name || `Member #${task.assignedTo}`}
+                </span>
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center">
             <button 
               className={`transition-colors ${
@@ -154,9 +176,15 @@ export function TaskCard({ task, project, onEdit }: TaskCardProps) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(task)}>
-                  Edit
-                </DropdownMenuItem>
+                {task.assignedTo && onEditAssigned ? (
+                  <DropdownMenuItem onClick={() => onEditAssigned(task)}>
+                    Edit Assignment
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => onEdit(task)}>
+                    Edit
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleToggleComplete}>
                   Mark as {task.completed ? "Active" : "Complete"}
                 </DropdownMenuItem>
