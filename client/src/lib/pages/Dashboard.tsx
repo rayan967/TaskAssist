@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StatusCard } from "@/components/StatusCard";
 import { TaskCard } from "@/components/TaskCard";
 import { AddTaskModal } from "@/components/AddTaskModal";
+import { AssignTaskModal } from "@/components/AssignTaskModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -156,9 +157,15 @@ export default function Dashboard() {
     setEditingTask(task);
     setShowAddTaskModal(true);
   };
+
+  const handleEditAssignedTask = (task: Task) => {
+    setEditingTask(task);
+    setShowAssignTaskModal(true);
+  };
   
   const handleCloseModal = () => {
     setShowAddTaskModal(false);
+    setShowAssignTaskModal(false);
     setEditingTask(undefined);
   };
   
@@ -467,6 +474,13 @@ export default function Dashboard() {
       {/* Add/Edit Task Modal */}
       <AddTaskModal
         isOpen={showAddTaskModal}
+        onClose={handleCloseModal}
+        editingTask={editingTask}
+      />
+      
+      {/* Assign Task Modal */}
+      <AssignTaskModal
+        isOpen={showAssignTaskModal}
         onClose={handleCloseModal}
         editingTask={editingTask}
       />
