@@ -3,10 +3,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/Dashboard";
-import Calendar from "@/pages/Calendar";
-import Team from "@/pages/Team";
+import NotFound from "@/lib/pages/not-found";
+import Dashboard from "@/lib/pages/Dashboard";
+import Calendar from "@/lib/pages/Calendar";
+import Team from "@/lib/pages/Team";
 import { Layout } from "@/components/Layout";
 
 function Router() {
