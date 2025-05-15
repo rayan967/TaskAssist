@@ -120,15 +120,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiRequest<{ user: User; token: string }>({
+      const response = await apiRequest({
         url: "/api/auth/register",
         method: "POST",
         data: userData,
       });
       
-      setUser(response.user);
-      setToken(response.token);
-      localStorage.setItem("token", response.token);
+      const data = response as { user: User; token: string };
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");

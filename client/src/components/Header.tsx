@@ -1,8 +1,17 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Sun, Moon, Menu } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sun, Moon, Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   sidebarOpen: boolean;

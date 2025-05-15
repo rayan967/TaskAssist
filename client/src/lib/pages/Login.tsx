@@ -136,8 +136,8 @@ export default function Login() {
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Don't have an account?{" "}
-            <Link href="/register">
-              <a className="text-primary underline hover:text-primary/90">Register</a>
+            <Link href="/register" className="text-primary underline hover:text-primary/90">
+              Register
             </Link>
           </p>
         </CardFooter>
