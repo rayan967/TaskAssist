@@ -40,7 +40,8 @@ export const tasks = pgTable("tasks", {
   projectId: integer("project_id"),
   dueDate: timestamp("due_date"),
   priority: text("priority").default("medium"),
-  starred: boolean("starred").default(false)
+  starred: boolean("starred").default(false),
+  assignedTo: integer("assigned_to")
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({

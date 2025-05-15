@@ -90,7 +90,8 @@ export class MemStorage implements IStorage {
         projectId: 1,
         dueDate: tomorrow,
         priority: "medium",
-        starred: false
+        starred: false,
+        assignedTo: null
       },
       {
         id: this.taskId++,
@@ -100,7 +101,8 @@ export class MemStorage implements IStorage {
         projectId: 2,
         dueDate: now,
         priority: "high",
-        starred: true
+        starred: true,
+        assignedTo: 2
       },
       {
         id: this.taskId++,
@@ -110,7 +112,8 @@ export class MemStorage implements IStorage {
         projectId: 3,
         dueDate: inTwoDays,
         priority: "medium",
-        starred: false
+        starred: false,
+        assignedTo: null
       },
       {
         id: this.taskId++,
@@ -120,7 +123,8 @@ export class MemStorage implements IStorage {
         projectId: 1,
         dueDate: inFiveDays,
         priority: "low",
-        starred: false
+        starred: false,
+        assignedTo: null
       },
       {
         id: this.taskId++,
@@ -130,7 +134,8 @@ export class MemStorage implements IStorage {
         projectId: 2,
         dueDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
         priority: "high",
-        starred: false
+        starred: false,
+        assignedTo: 3
       },
       {
         id: this.taskId++,
@@ -140,7 +145,8 @@ export class MemStorage implements IStorage {
         projectId: 3,
         dueDate: inThreeDays,
         priority: "medium",
-        starred: true
+        starred: true,
+        assignedTo: 4
       }
     ];
     

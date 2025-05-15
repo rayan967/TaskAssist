@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StatusCard } from "@/components/StatusCard";
 import { TaskCard } from "@/components/TaskCard";
 import { AddTaskModal } from "@/components/AddTaskModal";
+import { AssignTaskModal } from "@/components/AssignTaskModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,10 +22,13 @@ type SortDirection = "asc" | "desc";
 
 export default function Dashboard() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  // To filter by assignment - added for showing only my tasks or assigned tasks
+  const [assignmentFilter, setAssignmentFilter] = useState<string>("my");
   
   // Sorting state
   const [sortBy, setSortBy] = useState<SortOption>("none");
@@ -56,6 +60,10 @@ export default function Dashboard() {
       // Filter by status
       if (activeFilter === "active" && task.completed) return false;
       if (activeFilter === "completed" && !task.completed) return false;
+      
+      // Filter by assignment
+      if (assignmentFilter === "my" && task.assignedTo) return false;
+      if (assignmentFilter === "assigned" && !task.assignedTo) return false;
       
       // Filter by search query
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -137,6 +145,7 @@ export default function Dashboard() {
     setPriorityFilter(null);
     setDateRange({});
     setSortBy("none");
+    setAssignmentFilter("my");
   };
   
   const handleAddTask = () => {
@@ -148,9 +157,15 @@ export default function Dashboard() {
     setEditingTask(task);
     setShowAddTaskModal(true);
   };
+
+  const handleEditAssignedTask = (task: Task) => {
+    setEditingTask(task);
+    setShowAssignTaskModal(true);
+  };
   
   const handleCloseModal = () => {
     setShowAddTaskModal(false);
+    setShowAssignTaskModal(false);
     setEditingTask(undefined);
   };
   
@@ -213,31 +228,60 @@ export default function Dashboard() {
 
       {/* Task filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
-          <Button
-            variant={activeFilter === "all" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("all")}
-            className={activeFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            All
-          </Button>
-          <Button
-            variant={activeFilter === "active" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("active")}
-            className={activeFilter !== "active" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            Active
-          </Button>
-          <Button
-            variant={activeFilter === "completed" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveFilter("completed")}
-            className={activeFilter !== "completed" ? "text-gray-600 dark:text-gray-300" : ""}
-          >
-            Completed
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
+            <Button
+              variant={activeFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+              className={activeFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              All
+            </Button>
+            <Button
+              variant={activeFilter === "active" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("active")}
+              className={activeFilter !== "active" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Active
+            </Button>
+            <Button
+              variant={activeFilter === "completed" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("completed")}
+              className={activeFilter !== "completed" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Completed
+            </Button>
+          </div>
+          
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
+            <Button
+              variant={assignmentFilter === "my" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("my")}
+              className={assignmentFilter !== "my" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              My Tasks
+            </Button>
+            <Button
+              variant={assignmentFilter === "assigned" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("assigned")}
+              className={assignmentFilter !== "assigned" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              Assigned Tasks
+            </Button>
+            <Button
+              variant={assignmentFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setAssignmentFilter("all")}
+              className={assignmentFilter !== "all" ? "text-gray-600 dark:text-gray-300" : ""}
+            >
+              All Tasks
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-2 items-center">
@@ -270,14 +314,14 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Project</p>
                   <Select
-                    value={selectedProject || ""}
-                    onValueChange={(value) => setSelectedProject(value || null)}
+                    value={selectedProject || "all"}
+                    onValueChange={(value) => setSelectedProject(value !== "all" ? value : null)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All Projects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Projects</SelectItem>
+                      <SelectItem value="all">All Projects</SelectItem>
                       {projects.map((project: Project) => (
                         <SelectItem key={project.id} value={String(project.id)}>
                           {project.name}
@@ -290,14 +334,14 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Priority</p>
                   <Select
-                    value={priorityFilter || ""}
-                    onValueChange={(value) => setPriorityFilter(value || null)}
+                    value={priorityFilter || "any"}
+                    onValueChange={(value) => setPriorityFilter(value !== "any" ? value : null)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Any Priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any Priority</SelectItem>
+                      <SelectItem value="any">Any Priority</SelectItem>
                       <SelectItem value="High">High</SelectItem>
                       <SelectItem value="Medium">Medium</SelectItem>
                       <SelectItem value="Low">Low</SelectItem>
@@ -396,6 +440,7 @@ export default function Dashboard() {
               task={task} 
               project={getProjectById(task.projectId)}
               onEdit={handleEditTask}
+              onEditAssigned={handleEditAssignedTask}
             />
           ))
         ) : (
@@ -430,6 +475,13 @@ export default function Dashboard() {
       {/* Add/Edit Task Modal */}
       <AddTaskModal
         isOpen={showAddTaskModal}
+        onClose={handleCloseModal}
+        editingTask={editingTask}
+      />
+      
+      {/* Assign Task Modal */}
+      <AssignTaskModal
+        isOpen={showAssignTaskModal}
         onClose={handleCloseModal}
         editingTask={editingTask}
       />
