@@ -20,6 +20,7 @@ interface HeaderProps {
 
 export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   
   useEffect(() => {
@@ -47,6 +48,10 @@ export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
     
     // Save preference to localStorage
     localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+  };
+  
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -79,10 +84,42 @@ export function Header({ sidebarOpen, toggleSidebar }: HeaderProps) {
           >
             {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100" alt="User" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="h-8 w-8 cursor-pointer">
+                <AvatarImage 
+                  src={user?.profileImageUrl || "https://ui-avatars.com/api/?name=" + (user?.firstName || user?.username || "U")} 
+                  alt={user?.username || "User"} 
+                />
+                <AvatarFallback>{user?.firstName?.charAt(0) || user?.username?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                {user ? (
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email || user.username}</p>
+                  </div>
+                ) : (
+                  "My Account"
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
