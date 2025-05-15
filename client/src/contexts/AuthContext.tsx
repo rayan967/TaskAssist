@@ -9,6 +9,8 @@ type User = {
   firstName?: string;
   lastName?: string;
   role: string;
+  profileImageUrl?: string;
+  isActive?: boolean;
 };
 
 // Authentication context type

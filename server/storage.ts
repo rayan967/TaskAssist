@@ -42,6 +42,23 @@ export class MemStorage implements IStorage {
   private userId: number;
   private taskId: number;
   private projectId: number;
+  
+  // Add verification method to MemStorage
+  async verifyUser(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    
+    if (!user) {
+      return null;
+    }
+    
+    // For in-memory storage in development, we just do a direct password comparison
+    // In production with DatabaseStorage, bcrypt.compare would be used
+    if (user.password !== password) {
+      return null;
+    }
+    
+    return user;
+  }
 
   constructor() {
     this.users = new Map();
@@ -56,11 +73,122 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDefaultData() {
-    // Add default projects
+    // Add default users with hashed passwords
+    // Note: In a real app, you would hash these passwords,
+    // but for demo we'll use plain text passwords in memory storage
+    // The password for all users is 'password123'
+    const defaultUsers = [
+      {
+        id: this.userId++,
+        username: "admin",
+        password: "password123",  // In real system, this would be hashed
+        email: "admin@taskassist.com",
+        firstName: "Admin",
+        lastName: "User",
+        role: "admin",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: null,
+        isActive: true
+      },
+      {
+        id: this.userId++,
+        username: "john",
+        password: "password123",
+        email: "john@example.com",
+        firstName: "John",
+        lastName: "Doe",
+        role: "user",
+        profileImageUrl: "https://ui-avatars.com/api/?name=John+Doe&background=FF5733&color=fff",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: null,
+        isActive: true
+      },
+      {
+        id: this.userId++,
+        username: "sarah",
+        password: "password123",
+        email: "sarah@example.com",
+        firstName: "Sarah",
+        lastName: "Smith",
+        role: "user",
+        profileImageUrl: "https://ui-avatars.com/api/?name=Sarah+Smith&background=4CAF50&color=fff",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: null,
+        isActive: true
+      }
+    ];
+    
+    defaultUsers.forEach(user => {
+      this.users.set(user.id, user);
+    });
+    
+    // Team data
+    const defaultTeamId = 1;
+    const defaultTeam = {
+      id: defaultTeamId,
+      name: "Development Team",
+      description: "Core product development team",
+      creatorId: 1, // Admin user
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Add default projects with user association
     const defaultProjects = [
-      { id: this.projectId++, name: "Personal", color: "#3B82F6" },
-      { id: this.projectId++, name: "Work", color: "#10B981" },
-      { id: this.projectId++, name: "Shopping", color: "#F59E0B" }
+      { 
+        id: this.projectId++, 
+        name: "Personal", 
+        color: "#3B82F6", 
+        userId: 1,
+        teamId: null,
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { 
+        id: this.projectId++, 
+        name: "Work", 
+        color: "#10B981", 
+        userId: 1,
+        teamId: defaultTeamId,
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { 
+        id: this.projectId++, 
+        name: "Shopping", 
+        color: "#F59E0B", 
+        userId: 1,
+        teamId: null,
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { 
+        id: this.projectId++, 
+        name: "Marketing", 
+        color: "#8B5CF6", 
+        userId: 2,
+        teamId: defaultTeamId,
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { 
+        id: this.projectId++, 
+        name: "Research", 
+        color: "#EC4899", 
+        userId: 3,
+        teamId: defaultTeamId,
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
     ];
     
     defaultProjects.forEach(project => {
@@ -91,7 +219,11 @@ export class MemStorage implements IStorage {
         dueDate: tomorrow,
         priority: "medium",
         starred: false,
-        assignedTo: null
+        assignedTo: null,
+        userId: 1,
+        teamId: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         id: this.taskId++,
@@ -102,7 +234,11 @@ export class MemStorage implements IStorage {
         dueDate: now,
         priority: "high",
         starred: true,
-        assignedTo: 2
+        assignedTo: 2,
+        userId: 1,
+        teamId: defaultTeamId,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         id: this.taskId++,
@@ -113,7 +249,11 @@ export class MemStorage implements IStorage {
         dueDate: inTwoDays,
         priority: "medium",
         starred: false,
-        assignedTo: null
+        assignedTo: null,
+        userId: 1,
+        teamId: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         id: this.taskId++,
@@ -124,7 +264,11 @@ export class MemStorage implements IStorage {
         dueDate: inFiveDays,
         priority: "low",
         starred: false,
-        assignedTo: null
+        assignedTo: null,
+        userId: 1,
+        teamId: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         id: this.taskId++,
@@ -135,7 +279,11 @@ export class MemStorage implements IStorage {
         dueDate: new Date(now.getTime() - 24 * 60 * 60 * 1000),
         priority: "high",
         starred: false,
-        assignedTo: 3
+        assignedTo: 3,
+        userId: 1,
+        teamId: defaultTeamId,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         id: this.taskId++,
@@ -146,7 +294,41 @@ export class MemStorage implements IStorage {
         dueDate: inThreeDays,
         priority: "medium",
         starred: true,
-        assignedTo: 4
+        assignedTo: null,
+        userId: 1,
+        teamId: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: this.taskId++,
+        title: "Design new marketing materials",
+        description: "Create new brochures and social media graphics for the upcoming product launch.",
+        completed: false,
+        projectId: 4,
+        dueDate: inFiveDays,
+        priority: "high",
+        starred: true,
+        assignedTo: 2,
+        userId: 2,
+        teamId: defaultTeamId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: this.taskId++,
+        title: "Research competitor pricing",
+        description: "Analyze competitor pricing strategies and prepare report for management.",
+        completed: false,
+        projectId: 5,
+        dueDate: inThreeDays,
+        priority: "medium",
+        starred: false,
+        assignedTo: 3,
+        userId: 3,
+        teamId: defaultTeamId,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
     
