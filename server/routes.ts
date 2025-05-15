@@ -1,9 +1,10 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertTaskSchema, updateTaskSchema, insertProjectSchema } from "@shared/schema";
+import { insertTaskSchema, updateTaskSchema, insertProjectSchema, insertUserSchema, loginUserSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { authenticate, generateToken, optionalAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -159,6 +160,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication routes
+  // Register endpoint
+  apiRouter.post("/auth/register", async (req: Request, res: Response) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Create new user
+      const user = await storage.createUser(userData);
+      
+      // Generate token
+      const token = generateToken(user.id);
+      
+      // Return user info and token
+      return res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        token
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Login endpoint
+  apiRouter.post("/auth/login", async (req: Request, res: Response) => {
+    try {
+      const loginData = loginUserSchema.parse(req.body);
+      
+      // Verify credentials
+      const user = await (storage as any).verifyUser(loginData.username, loginData.password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Generate token
+      const token = generateToken(user.id);
+      
+      // Return user info and token
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        token
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Get current user info
+  apiRouter.get("/auth/me", authenticate, (req: Request, res: Response) => {
+    const user = (req as any).user;
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role
+    });
+  });
+  
+  // Add optional authentication to all other routes to identify the user if token is provided
+  apiRouter.use(optionalAuth);
+  
   // Register API routes with /api prefix
   app.use("/api", apiRouter);
 

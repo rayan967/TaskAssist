@@ -73,9 +73,18 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Projects</p>
           <nav className="space-y-1">
             {projects.map((project: Project) => (
-              <a 
+              <Link 
                 key={project.id}
-                href="#" 
+                href="/dashboard"
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Navigate to dashboard with the project filter
+                  window.history.pushState({}, "", "/dashboard");
+                  // Using a custom event to trigger project filtering in Dashboard
+                  window.dispatchEvent(new CustomEvent('filterByProject', { 
+                    detail: { projectId: project.id }
+                  }));
+                }} 
                 className="flex items-center justify-between px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <span className="flex items-center min-w-0">
@@ -89,15 +98,23 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   {/* Task count would be dynamically generated in a real implementation */}
                   {project.id === 1 ? 12 : project.id === 2 ? 8 : 3}
                 </span>
-              </a>
+              </Link>
             ))}
           </nav>
         </div>
 
         <div className="pt-4">
-          <Button className="w-full">
+          <Button 
+            className="w-full"
+            onClick={() => {
+              // Navigate to dashboard and trigger task creation modal
+              window.history.pushState({}, "", "/dashboard");
+              // Using a custom event to trigger the Add Task modal in Dashboard
+              window.dispatchEvent(new CustomEvent('openAddTaskModal'));
+            }}
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
-            New Project
+            New Task
           </Button>
         </div>
       </div>

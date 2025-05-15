@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StatusCard } from "@/components/StatusCard";
 import { TaskCard } from "@/components/TaskCard";
@@ -37,6 +37,30 @@ export default function Dashboard() {
   // Date filtering
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  
+  // Listen for custom events from sidebar
+  useEffect(() => {
+    // Handle project filtering from sidebar
+    const handleFilterByProject = (event: CustomEvent) => {
+      const { projectId } = event.detail;
+      setSelectedProject(projectId.toString());
+    };
+    
+    // Handle opening add task modal from sidebar
+    const handleOpenAddTaskModal = () => {
+      setShowAddTaskModal(true);
+    };
+    
+    // Add event listeners
+    window.addEventListener('filterByProject', handleFilterByProject as EventListener);
+    window.addEventListener('openAddTaskModal', handleOpenAddTaskModal);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('filterByProject', handleFilterByProject as EventListener);
+      window.removeEventListener('openAddTaskModal', handleOpenAddTaskModal);
+    };
+  }, []);
   
   // Fetch tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
