@@ -75,16 +75,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             {projects.map((project: Project) => (
               <Link 
                 key={project.id}
-                href="/dashboard"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // Navigate to dashboard with the project filter
-                  window.history.pushState({}, "", "/dashboard");
-                  // Using a custom event to trigger project filtering in Dashboard
-                  window.dispatchEvent(new CustomEvent('filterByProject', { 
-                    detail: { projectId: project.id }
-                  }));
-                }} 
+                href={`/dashboard/${project.id}`}
                 className="flex items-center justify-between px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <span className="flex items-center min-w-0">

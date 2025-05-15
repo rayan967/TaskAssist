@@ -20,13 +20,23 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 type SortOption = "title" | "dueDate" | "priority" | "none";
 type SortDirection = "asc" | "desc";
 
-export default function Dashboard() {
+export default function Dashboard({ path }: { path?: string }) {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  
+  // Extract project ID from path if available
+  useEffect(() => {
+    if (path && path.startsWith('/dashboard/')) {
+      const projectId = path.split('/').pop();
+      if (projectId && !isNaN(parseInt(projectId))) {
+        setSelectedProject(projectId);
+      }
+    }
+  }, [path]);
   // To filter by assignment - added for showing only my tasks or assigned tasks
   const [assignmentFilter, setAssignmentFilter] = useState<string>("my");
   
