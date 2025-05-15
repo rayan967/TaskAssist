@@ -46,7 +46,10 @@ export default function Login() {
       clearError();
       setFormError(null);
       await login(values.username, values.password);
-      navigate("/dashboard");
+      // Navigate to dashboard with a slight delay to ensure auth state is fully updated
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     } catch (err: any) {
       setFormError(err.message || "Login failed. Please check your credentials.");
     }

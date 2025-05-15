@@ -20,7 +20,10 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
   
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      console.log("Not authenticated, redirecting to login");
       navigate('/login');
+    } else if (!isLoading && isAuthenticated) {
+      console.log("User is authenticated, rendering component");
     }
   }, [isAuthenticated, isLoading, navigate]);
   
@@ -28,7 +31,13 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  return isAuthenticated ? <Component /> : null;
+  // If not loading and authenticated, render the component
+  if (!isLoading && isAuthenticated) {
+    return <Component {...rest} />;
+  }
+  
+  // Otherwise return null (redirection will happen in the useEffect)
+  return null;
 }
 
 function Router() {
