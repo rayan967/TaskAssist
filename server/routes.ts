@@ -242,7 +242,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role
+      role: user.role,
+      profileImageUrl: user.profileImageUrl,
+      isActive: user.isActive
     });
   });
   

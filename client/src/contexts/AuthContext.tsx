@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           Authorization: `Bearer ${authToken}`,
         },
       });
-      setUser(userData as User);
+      setUser(userData);
       setIsLoading(false);
     } catch (err) {
       console.error("Error fetching user data:", err);
@@ -93,13 +93,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiRequest({
+      const data = await apiRequest({
         url: "/api/auth/login",
         method: "POST",
         data: { username, password },
       });
       
-      const data = response as { user: User; token: string };
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem("token", data.token);
@@ -122,13 +121,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiRequest({
+      const data = await apiRequest({
         url: "/api/auth/register",
         method: "POST",
         data: userData,
       });
       
-      const data = response as { user: User; token: string };
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem("token", data.token);
