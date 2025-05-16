@@ -1,4 +1,4 @@
-import { Task, Project } from "@shared/schema";
+import { Task, Project, User } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,23 +13,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-
-// Hardcoded team members (in a real app, this would come from the API)
-const teamMembers = [
-  { id: 1, name: "John Smith", role: "Product Manager" },
-  { id: 2, name: "Emily Johnson", role: "UX Designer" },
-  { id: 3, name: "David Lee", role: "Developer" },
-  { id: 4, name: "Lisa Chen", role: "Marketing Specialist" }
-];
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TaskCardProps {
   task: Task;
   project?: Project;
   onEdit: (task: Task) => void;
   onEditAssigned?: (task: Task) => void; // Added for assigned tasks editing
+  assignedByUser?: User; // For displaying who assigned the task
+  assignedToUser?: User; // For displaying who the task is assigned to
 }
 
 export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProps) {
