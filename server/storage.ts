@@ -1,18 +1,7 @@
 import { 
-  tasks, 
-  projects, 
-  users, 
-  type Task, 
-  type Project,
-  type User, 
-  type InsertTask, 
-  type UpdateTask,
-  type InsertProject,
-  type InsertUser,
-  type TaskSummary
+  User, InsertUser, Task, InsertTask, UpdateTask, Project, InsertProject, TaskSummary 
 } from "@shared/schema";
 
-// Storage interface for CRUD operations
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -33,6 +22,11 @@ export interface IStorage {
   
   // Task summary
   getTaskSummary(): Promise<TaskSummary>;
+  
+  // Team operations
+  getTeamMembers(): Promise<User[]>;
+  addTeamMember(userId: number, teamId: number): Promise<boolean>;
+  getTasksAssignedByUser(userId: number): Promise<Task[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -43,23 +37,6 @@ export class MemStorage implements IStorage {
   private taskId: number;
   private projectId: number;
   
-  // Add verification method to MemStorage
-  async verifyUser(username: string, password: string): Promise<User | null> {
-    const user = await this.getUserByUsername(username);
-    
-    if (!user) {
-      return null;
-    }
-    
-    // For in-memory storage in development, we just do a direct password comparison
-    // In production with DatabaseStorage, bcrypt.compare would be used
-    if (user.password !== password) {
-      return null;
-    }
-    
-    return user;
-  }
-
   constructor() {
     this.users = new Map();
     this.tasks = new Map();
@@ -68,10 +45,9 @@ export class MemStorage implements IStorage {
     this.taskId = 1;
     this.projectId = 1;
     
-    // Initialize with default projects
     this.initializeDefaultData();
   }
-
+  
   private initializeDefaultData() {
     // Add default users with hashed passwords
     // Note: In a real app, you would hash these passwords,
