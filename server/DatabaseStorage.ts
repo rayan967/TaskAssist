@@ -186,4 +186,43 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .where(eq(projects.userId, userId));
   }
+  
+  // Team operations
+  async getTeamMembers(): Promise<User[]> {
+    // In a real implementation, we would filter by team membership
+    // For now, return all users except password field
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      role: users.role,
+      profileImageUrl: users.profileImageUrl,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      lastLogin: users.lastLogin,
+      isActive: users.isActive
+    }).from(users);
+  }
+  
+  async addTeamMember(userId: number, teamId: number): Promise<boolean> {
+    // In a real implementation, we would add a record to a team_members table
+    // For this demo implementation, we'll just check if the user exists
+    const user = await this.getUser(userId);
+    return !!user;
+  }
+  
+  async getTasksAssignedByUser(userId: number): Promise<Task[]> {
+    // Get tasks where the user is the creator (userId) but assigned to someone else
+    return await db.select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.userId, userId),
+          sql`${tasks.assignedTo} IS NOT NULL`,
+          sql`${tasks.assignedTo} != ${userId}`
+        )
+      );
+  }
 }

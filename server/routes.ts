@@ -127,6 +127,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(res, error);
     }
   });
+  
+  // Get all users (for team member selection)
+  apiRouter.get("/users", authenticate, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getTeamMembers();
+      res.json(users);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Add team member
+  apiRouter.post("/teams/:teamId/members", authenticate, async (req: Request, res: Response) => {
+    try {
+      const { teamId } = req.params;
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      const success = await storage.addTeamMember(Number(userId), Number(teamId));
+      
+      if (success) {
+        res.status(201).json({ message: "Team member added successfully" });
+      } else {
+        res.status(400).json({ message: "Failed to add team member" });
+      }
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Get tasks assigned by user
+  apiRouter.get("/tasks/assigned-by-me", authenticate, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const tasks = await storage.getTasksAssignedByUser(userId);
+      res.json(tasks);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Get tasks assigned to user
+  apiRouter.get("/tasks/assigned-to-me", authenticate, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const tasks = await storage.getTasksByUserId(userId);
+      res.json(tasks);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
 
   // POST create project
   apiRouter.post("/projects", async (req: Request, res: Response) => {

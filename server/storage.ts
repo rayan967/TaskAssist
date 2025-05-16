@@ -7,6 +7,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  verifyUser(username: string, password: string): Promise<User | null>;
   
   // Task operations
   getTasks(filter?: string): Promise<Task[]>;
@@ -27,6 +28,8 @@ export interface IStorage {
   getTeamMembers(): Promise<User[]>;
   addTeamMember(userId: number, teamId: number): Promise<boolean>;
   getTasksAssignedByUser(userId: number): Promise<Task[]>;
+  getTasksByUserId(userId: number, filter?: string): Promise<Task[]>;
+  getProjectsByUserId(userId: number): Promise<Project[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -401,6 +404,68 @@ export class MemStorage implements IStorage {
       completed,
       pending
     };
+  }
+  
+  // Team operations
+  async getTeamMembers(): Promise<User[]> {
+    // For now, return all users as team members
+    return Array.from(this.users.values());
+  }
+  
+  async addTeamMember(userId: number, teamId: number): Promise<boolean> {
+    // In a real implementation, we would add a record to a team_members table
+    // For this demo, we'll just return true if the user exists
+    return this.users.has(userId);
+  }
+  
+  async getTasksAssignedByUser(userId: number): Promise<Task[]> {
+    // Get tasks where the user is the creator (userId) but assigned to someone else
+    const allTasks = Array.from(this.tasks.values());
+    return allTasks.filter(task => 
+      task.userId === userId && 
+      task.assignedTo !== null && 
+      task.assignedTo !== userId
+    );
+  }
+  
+  // Helper method for authentication
+  async verifyUser(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    
+    if (!user) {
+      return null;
+    }
+    
+    // In a real app, you would use bcrypt.compare() to compare hashed passwords
+    if (user.password === password) {
+      return user;
+    }
+    
+    return null;
+  }
+  
+  // Get tasks assigned to a specific user
+  async getTasksByUserId(userId: number, filter?: string): Promise<Task[]> {
+    const allTasks = Array.from(this.tasks.values());
+    
+    // Filter tasks that are assigned to this user
+    const userTasks = allTasks.filter(task => task.assignedTo === userId);
+    
+    if (!filter || filter === 'all') {
+      return userTasks;
+    } else if (filter === 'active') {
+      return userTasks.filter(task => !task.completed);
+    } else if (filter === 'completed') {
+      return userTasks.filter(task => task.completed);
+    }
+    
+    return userTasks;
+  }
+  
+  // Get projects associated with a specific user
+  async getProjectsByUserId(userId: number): Promise<Project[]> {
+    const allProjects = Array.from(this.projects.values());
+    return allProjects.filter(project => project.userId === userId);
   }
 }
 
