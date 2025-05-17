@@ -28,6 +28,7 @@ interface AddTaskModalProps {
 
 const formSchema = insertTaskSchema.extend({
   dueDate: z.date().optional(),
+  userId: z.number().default(1),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +48,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       dueDate: undefined,
       completed: false,
       starred: false,
+      userId: 1, // Adding default userId which is required
     },
   });
   
@@ -61,6 +63,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
         dueDate: editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
         completed: editingTask.completed,
         starred: editingTask.starred,
+        userId: editingTask.userId || 1,
       });
     } else {
       form.reset({
@@ -71,6 +74,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
         dueDate: undefined,
         completed: false,
         starred: false,
+        userId: 1,
       });
     }
   }, [editingTask, form]);
@@ -107,8 +111,12 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
     mutationFn: async (updatedTask: FormValues) => {
       if (!editingTask) return null;
       
-      const res = await apiRequest('PATCH', `/api/tasks/${editingTask.id}`, updatedTask);
-      return res.json();
+      const res = await apiRequest({
+        method: 'PATCH',
+        url: `/api/tasks/${editingTask.id}`,
+        data: updatedTask
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -261,7 +269,8 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue="medium"
+                      value={field.value as string}
                       className="flex space-x-2"
                     >
                       <FormItem className="flex items-center justify-center space-y-0 border border-gray-200 dark:border-gray-700 rounded-md py-2 px-3 w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">

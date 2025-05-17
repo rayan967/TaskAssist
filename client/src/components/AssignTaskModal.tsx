@@ -125,8 +125,12 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       newTask.userId = 1; // Owner of the task (required field)
       
       // Use apiRequest from queryClient to make the request
-      const res = await apiRequest('POST', '/api/tasks', newTask);
-      return res.json();
+      const res = await apiRequest({
+        method: 'POST',
+        url: '/api/tasks',
+        data: newTask
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -160,8 +164,12 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       }
       
       // Use apiRequest from queryClient to make the request
-      const res = await apiRequest('PATCH', `/api/tasks/${editingTask!.id}`, updatedTask);
-      return res.json();
+      const res = await apiRequest({
+        method: 'PATCH',
+        url: `/api/tasks/${editingTask!.id}`,
+        data: updatedTask
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
