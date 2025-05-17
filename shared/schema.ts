@@ -25,23 +25,12 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
 });
 
-// Teams table for user collaboration
-export const teams = pgTable("teams", {
+// FriendList (user connections) table
+export const userFriends = pgTable("user_friends", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
+  userId: integer("user_id").notNull(), // The user who added the friend
+  friendId: integer("friend_id").notNull(), // The user who was added as a friend
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  creatorId: integer("creator_id").notNull(),
-});
-
-// Team-user relationship table
-export const teamMembers = pgTable("team_members", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id").notNull(),
-  userId: integer("user_id").notNull(),
-  role: text("role").default("member"),
-  joinedAt: timestamp("joined_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

@@ -60,52 +60,74 @@ export class DatabaseStorage implements IStorage {
       .limit(10); // Limit results for performance
   }
 
-  // Team operations
-  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
-    // First check if the member is already in the team
-    const existingMember = await db.select()
-      .from(teamMembers)
+  // Friend operations
+  async addFriend(userId: number, friendId: number): Promise<any> {
+    // First check if the friend relationship already exists
+    const existingFriend = await db.select()
+      .from(userFriends)
       .where(
         and(
-          eq(teamMembers.teamId, teamId),
-          eq(teamMembers.userId, userId)
+          eq(userFriends.userId, userId),
+          eq(userFriends.friendId, friendId)
         )
       );
 
-    if (existingMember.length > 0) {
-      throw new Error("User is already a member of this team");
+    if (existingFriend.length > 0) {
+      throw new Error("User is already in your friend list");
     }
 
-    // Add user to team
-    const [newMember] = await db.insert(teamMembers)
+    // Add user as friend
+    const [newFriend] = await db.insert(userFriends)
       .values({
-        teamId,
         userId,
-        role,
-        joinedAt: new Date()
+        friendId,
+        createdAt: new Date()
       })
       .returning();
       
-    return newMember;
+    // Get the friend's user information
+    const [friendUser] = await db.select().from(users).where(eq(users.id, friendId));
+    
+    // Return combined data
+    return {
+      ...newFriend,
+      username: friendUser.username,
+      email: friendUser.email,
+      firstName: friendUser.firstName,
+      lastName: friendUser.lastName,
+      profileImageUrl: friendUser.profileImageUrl,
+      // Default values for UI display
+      tasksCompleted: 0,
+      tasksAssigned: 0,
+      availability: "Available"
+    };
   }
   
-  async getTeamMembers(teamId: number): Promise<any[]> {
-    // Join with users table to get member details
-    return await db.select({
-      id: teamMembers.id,
-      userId: teamMembers.userId,
-      teamId: teamMembers.teamId,
-      role: teamMembers.role,
-      joinedAt: teamMembers.joinedAt,
+  async getFriends(userId: number): Promise<any[]> {
+    // Join with users table to get friend details
+    const friends = await db.select({
+      id: userFriends.id,
+      userId: userFriends.userId,
+      friendId: userFriends.friendId,
+      createdAt: userFriends.createdAt,
       username: users.username,
       email: users.email,
       firstName: users.firstName,
       lastName: users.lastName,
       profileImageUrl: users.profileImageUrl
     })
-    .from(teamMembers)
-    .innerJoin(users, eq(teamMembers.userId, users.id))
-    .where(eq(teamMembers.teamId, teamId));
+    .from(userFriends)
+    .innerJoin(users, eq(userFriends.friendId, users.id))
+    .where(eq(userFriends.userId, userId));
+    
+    // Add task statistics for display
+    return friends.map(friend => ({
+      ...friend,
+      // In a real implementation, these would be calculated from tasks assigned to the friend
+      tasksCompleted: 0,
+      tasksAssigned: 0,
+      availability: "Available"
+    }));
   }
 
   // Task operations
