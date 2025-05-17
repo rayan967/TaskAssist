@@ -86,6 +86,7 @@ export default function Team() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedMember, setSelectedMember] = useState<number | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   
   // Fetch tasks and projects data
@@ -161,10 +162,16 @@ export default function Team() {
     setShowTaskModal(true);
   };
   
-  // Close modal
+  // Close modals
   const handleCloseModal = () => {
     setShowTaskModal(false);
+    setShowAddMemberModal(false);
     setEditingTask(undefined);
+  };
+  
+  // Handle adding a new team member
+  const handleAddMember = () => {
+    setShowAddMemberModal(true);
   };
   
   return (
@@ -321,7 +328,7 @@ export default function Team() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Team Members</CardTitle>
-              <Button size="sm">
+              <Button size="sm" onClick={handleAddMember}>
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Add Member
               </Button>
@@ -622,6 +629,13 @@ export default function Team() {
         onClose={handleCloseModal}
         memberId={selectedMember || undefined}
         editingTask={editingTask}
+      />
+      
+      {/* Add team member modal */}
+      <AddTeamMemberModal
+        isOpen={showAddMemberModal}
+        onClose={handleCloseModal}
+        teamId={1} // We're using a hardcoded team ID for now (usually this would come from context or URL)
       />
     </>
   );

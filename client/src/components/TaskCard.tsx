@@ -35,6 +35,10 @@ interface TaskCardProps {
 export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProps) {
   // Find the assignee if task is assigned
   const assignee = task.assignedTo ? teamMembers.find(member => member.id === task.assignedTo) : null;
+  
+  // Find who assigned the task (if applicable)
+  const assigner = task.assignedBy ? teamMembers.find(member => member.id === task.assignedBy) : null;
+  
   const [isHovered, setIsHovered] = useState(false);
   
   const getTimeLabel = () => {
@@ -66,8 +70,17 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
   
   const updateTaskMutation = useMutation({
     mutationFn: async (updatedTask: Partial<Task>) => {
-      const res = await apiRequest('PATCH', `/api/tasks/${task.id}`, updatedTask);
-      return res.json();
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTask)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -88,7 +101,13 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
   
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('DELETE', `/api/tasks/${task.id}`);
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -154,6 +173,15 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
                 <span className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3" />
                   Assigned to {assignee?.name || `Member #${task.assignedTo}`}
+                </span>
+              </Badge>
+            )}
+            
+            {task.assignedBy && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="flex items-center gap-1">
+                  <UserCircle className="h-3 w-3" />
+                  Assigned by {assigner?.name || `Member #${task.assignedBy}`}
                 </span>
               </Badge>
             )}

@@ -120,7 +120,11 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
         newTask.dueDate = date as any;
       }
       
-      // Use apiRequest with correct parameters
+      // Add assignedBy field - the current user is assigning this task
+      // We'll use a fixed user ID (1) for now, but in a real app this would come from auth context
+      newTask.assignedBy = 1;
+      
+      // Use fetch to make the request
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
