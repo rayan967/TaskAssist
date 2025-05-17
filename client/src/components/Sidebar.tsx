@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Project } from "@shared/schema";
+import { Project, Task } from "@shared/schema";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,6 +16,16 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  // Fetch tasks to calculate project task counts
+  const { data: tasks = [] } = useQuery<Task[]>({
+    queryKey: ['/api/tasks'],
+  });
+  
+  // Calculate task count per project
+  const getProjectTaskCount = (projectId: number) => {
+    return tasks.filter(task => task.projectId === projectId).length;
+  };
 
   return (
     <aside 
@@ -86,8 +96,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   <span className="truncate">{project.name}</span>
                 </span>
                 <span className="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full dark:bg-gray-700 dark:text-gray-300 shrink-0 ml-2">
-                  {/* Task count would be dynamically generated in a real implementation */}
-                  {project.id === 1 ? 12 : project.id === 2 ? 8 : 3}
+                  {getProjectTaskCount(project.id)}
                 </span>
               </Link>
             ))}
