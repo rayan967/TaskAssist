@@ -98,6 +98,7 @@ export const tasks = pgTable("tasks", {
   priority: text("priority").default("medium"),
   starred: boolean("starred").default(false),
   assignedTo: integer("assigned_to"),
+  assignedBy: integer("assigned_by"), // Who assigned this task
   userId: integer("user_id").notNull(), // The creator/owner of the task
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
