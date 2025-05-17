@@ -120,22 +120,13 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
         newTask.dueDate = date as any;
       }
       
-      // Add assignedBy field - the current user is assigning this task
-      // We'll use a fixed user ID (1) for now, but in a real app this would come from auth context
-      newTask.assignedBy = 1;
+      // Add required fields
+      newTask.assignedBy = 1; // Who assigned this task
+      newTask.userId = 1; // Owner of the task (required field)
       
-      // Use fetch to make the request
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-      
-      return await response.json();
+      // Use apiRequest from queryClient to make the request
+      const res = await apiRequest('POST', '/api/tasks', newTask);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -165,22 +156,12 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       
       // If the task is being reassigned, update the assignedBy field
       if (updatedTask.assignedTo !== editingTask?.assignedTo) {
-        // We're using a fixed user ID (1) for now, but in a real app this would come from auth context
         updatedTask.assignedBy = 1;
       }
       
-      // Use fetch to make the PATCH request
-      const response = await fetch(`/api/tasks/${editingTask!.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-      
-      return await response.json();
+      // Use apiRequest from queryClient to make the request
+      const res = await apiRequest('PATCH', `/api/tasks/${editingTask!.id}`, updatedTask);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });

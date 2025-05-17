@@ -77,8 +77,12 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
   
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: FormValues) => {
-      const res = await apiRequest('POST', '/api/tasks', newTask);
-      return res.json();
+      const res = await apiRequest({
+        method: 'POST',
+        url: '/api/tasks',
+        data: newTask
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -126,10 +130,16 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
   });
   
   const onSubmit = (values: FormValues) => {
+    // Adding userId field which is required according to the schema
+    const taskData = {
+      ...values,
+      userId: 1, // Using a default user ID for now
+    };
+    
     if (editingTask) {
-      updateTaskMutation.mutate(values);
+      updateTaskMutation.mutate(taskData);
     } else {
-      createTaskMutation.mutate(values);
+      createTaskMutation.mutate(taskData);
     }
   };
   
