@@ -4,7 +4,7 @@ import {
   tasks, 
   projects, 
   users, 
-  teamMembers,
+  userFriends,
   type Task, 
   type Project,
   type User, 

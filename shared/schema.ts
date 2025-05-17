@@ -33,6 +33,14 @@ export const userFriends = pgTable("user_friends", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const insertFriendSchema = createInsertSchema(userFriends).pick({
+  userId: true,
+  friendId: true,
+});
+
+export type InsertFriend = z.infer<typeof insertFriendSchema>;
+export type UserFriend = typeof userFriends.$inferSelect;
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,

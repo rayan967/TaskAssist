@@ -14,10 +14,10 @@ import { User } from "@shared/schema";
 interface AddTeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamId: number;
+  userId: number; // The current user who's adding a friend
 }
 
-export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberModalProps) {
+export function AddTeamMemberModal({ isOpen, onClose, userId }: AddTeamMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -47,26 +47,26 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     enabled: searchQuery.length >= 2
   });
 
-  // Mutation to add user to team
-  const addUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await fetch('/api/team-members', {
+  // Mutation to add user as friend
+  const addFriendMutation = useMutation({
+    mutationFn: async (friendId: number) => {
+      const response = await fetch('/api/friends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId, userId })
+        body: JSON.stringify({ userId, friendId })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to add user to team');
+        throw new Error('Failed to add user to your friend list');
       }
       
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/friends/${userId}`] });
       toast({
-        title: "User added to team",
-        description: "The user has been successfully added to your team.",
+        title: "Friend added",
+        description: "The user has been successfully added to your friend list.",
       });
       onClose();
       setSelectedUser(null);
@@ -74,7 +74,7 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     },
     onError: (error) => {
       toast({
-        title: "Failed to add user",
+        title: "Failed to add friend",
         description: error.message,
         variant: "destructive",
       });
@@ -89,9 +89,9 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     setSelectedUser(user);
   };
 
-  const handleAddUser = () => {
+  const handleAddFriend = () => {
     if (selectedUser) {
-      addUserMutation.mutate(selectedUser.id);
+      addFriendMutation.mutate(selectedUser.id);
     }
   };
 
@@ -99,7 +99,7 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Team Member</DialogTitle>
+          <DialogTitle>Add Friend</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
@@ -186,10 +186,10 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
             Cancel
           </Button>
           <Button 
-            onClick={handleAddUser} 
-            disabled={!selectedUser || addUserMutation.isPending}
+            onClick={handleAddFriend} 
+            disabled={!selectedUser || addFriendMutation.isPending}
           >
-            {addUserMutation.isPending ? "Adding..." : "Add to Team"}
+            {addFriendMutation.isPending ? "Adding..." : "Add Friend"}
           </Button>
         </DialogFooter>
       </DialogContent>
