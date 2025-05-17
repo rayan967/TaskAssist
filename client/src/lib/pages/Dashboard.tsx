@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { StatusCard } from "@/components/StatusCard";
 import { TaskCard } from "@/components/TaskCard";
 import { AddTaskModal } from "@/components/AddTaskModal";
@@ -45,7 +46,7 @@ export default function Dashboard({ path }: { path?: string }) {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   
   // Date filtering
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   
   // Listen for custom events from sidebar
@@ -72,9 +73,20 @@ export default function Dashboard({ path }: { path?: string }) {
     };
   }, []);
   
-  // Fetch tasks
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
+  
+  // Fetch tasks - using the new API that returns tasks where user is creator, assignee, or assigner
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ['/api/tasks'],
+    queryKey: ['/api/tasks', { userId: currentUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/tasks?userId=${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      return response.json();
+    },
   });
   
   // Fetch projects

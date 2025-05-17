@@ -36,6 +36,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/tasks", async (req: Request, res: Response) => {
     try {
       const filter = req.query.filter as string | undefined;
+      const userId = req.query.userId as string | undefined;
+      
+      // If userId is provided, get tasks for that user (where user is creator, assignee, or assigner)
+      if (userId) {
+        const userIdNum = parseInt(userId);
+        if (isNaN(userIdNum)) {
+          return res.status(400).json({ message: "Invalid user ID" });
+        }
+        const tasks = await storage.getUserTasks(userIdNum, filter);
+        return res.json(tasks);
+      }
+      
+      // Otherwise get all tasks
       const tasks = await storage.getTasks(filter);
       res.json(tasks);
     } catch (error) {

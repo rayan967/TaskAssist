@@ -530,6 +530,26 @@ export class MemStorage implements IStorage {
     return this.tasks.delete(id);
   }
   
+  async getUserTasks(userId: number, filter?: string): Promise<Task[]> {
+    const allTasks = Array.from(this.tasks.values());
+    
+    // Filter tasks where user is creator, assignee, or assigner
+    const userTasks = allTasks.filter(task => 
+      task.userId === userId || 
+      task.assignedTo === userId || 
+      task.assignedBy === userId
+    );
+    
+    // Apply additional filters if specified
+    if (filter === 'active') {
+      return userTasks.filter(task => !task.completed);
+    } else if (filter === 'completed') {
+      return userTasks.filter(task => task.completed);
+    }
+    
+    return userTasks;
+  }
+  
   // Project operations
   async getProjects(): Promise<Project[]> {
     return Array.from(this.projects.values());
