@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Team member routes
   
   // GET team members
-  apiRouter.get("/team-members/:teamId", authenticate, async (req: Request, res: Response) => {
+  apiRouter.get("/team-members/:teamId", async (req: Request, res: Response) => {
     try {
       const teamId = Number(req.params.teamId);
       
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add team member
-  apiRouter.post("/team-members", authenticate, async (req: Request, res: Response) => {
+  apiRouter.post("/team-members", async (req: Request, res: Response) => {
     try {
       const { teamId, userId, role } = req.body;
       

@@ -72,12 +72,20 @@ export class MemStorage implements IStorage {
     const allUsers = Array.from(this.users.values());
     const lowerQuery = query.toLowerCase();
     
-    return allUsers.filter(user => 
+    // Filter users matching the search query
+    const matchedUsers = allUsers.filter(user => 
       user.username.toLowerCase().includes(lowerQuery) ||
       (user.email && user.email.toLowerCase().includes(lowerQuery)) ||
       (user.firstName && user.firstName.toLowerCase().includes(lowerQuery)) ||
       (user.lastName && user.lastName.toLowerCase().includes(lowerQuery))
     ).slice(0, 10); // Limit to 10 results
+    
+    // Return users without passwords (critical security fix)
+    return matchedUsers.map(user => {
+      // Create a new object without the password field
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword as User;
+    });
   }
   
   // Team operations
