@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/lib/pages/not-found";
 import Dashboard from "@/lib/pages/Dashboard";
 import Calendar from "@/lib/pages/Calendar";
-import Friends from "@/lib/pages/Friends";
+import Team from "@/lib/pages/Team";
 import Login from "@/lib/pages/Login";
 import Register from "@/lib/pages/Register";
 import { Layout } from "@/components/Layout";
@@ -58,10 +58,7 @@ function Router() {
         {() => <ProtectedRoute component={Calendar} />}
       </Route>
       <Route path="/team">
-        {() => <ProtectedRoute component={Friends} />}
-      </Route>
-      <Route path="/friends">
-        {() => <ProtectedRoute component={Friends} />}
+        {() => <ProtectedRoute component={Team} />}
       </Route>
       <Route>
         {() => <ProtectedRoute component={NotFound} />}

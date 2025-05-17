@@ -32,9 +32,9 @@ export interface IStorage {
   getProjectById(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   
-  // Friend operations
-  addFriend(userId: number, friendId: number): Promise<any>;
-  getFriends(userId: number): Promise<any[]>;
+  // Team operations
+  addTeamMember(teamId: number, userId: number, role?: string): Promise<any>;
+  getTeamMembers(teamId: number): Promise<any[]>;
   
   // Task summary
   getTaskSummary(): Promise<TaskSummary>;
@@ -88,73 +88,52 @@ export class MemStorage implements IStorage {
     });
   }
   
-  // Friend operations
-  async addFriend(userId: number, friendId: number): Promise<any> {
-    // Check if friend user exists
-    const friendUser = await this.getUser(friendId);
-    if (!friendUser) {
+  // Team operations
+  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
+    // Check if user exists
+    const user = await this.getUser(userId);
+    if (!user) {
       throw new Error("User not found");
     }
     
-    // Check if already friends
-    const existingFriend = Array.from(this.teamMembers.values()).find(
-      member => member.userId === userId && member.friendId === friendId
+    // Check if already a member
+    const existingMember = Array.from(this.teamMembers.values()).find(
+      member => member.teamId === teamId && member.userId === userId
     );
     
-    if (existingFriend) {
-      throw new Error("User is already in your friend list");
+    if (existingMember) {
+      throw new Error("User is already a member of this team");
     }
     
-    // Add as friend
+    // Add to team
     const id = this.teamMemberId++;
-    const newFriend = {
+    const newMember = {
       id,
+      teamId,
       userId,
-      friendId,
-      createdAt: new Date()
+      role,
+      joinedAt: new Date()
     };
     
-    this.teamMembers.set(id, newFriend);
-    
-    // Return friend with user data
-    return {
-      ...newFriend,
-      username: friendUser.username,
-      email: friendUser.email,
-      firstName: friendUser.firstName,
-      lastName: friendUser.lastName,
-      profileImageUrl: friendUser.profileImageUrl,
-      // Default task counts for display
-      tasksCompleted: 0,
-      tasksAssigned: 0,
-      // Default availability
-      availability: "Available"
-    };
+    this.teamMembers.set(id, newMember);
+    return newMember;
   }
   
-  async getFriends(userId: number): Promise<any[]> {
-    // Get all friends for this user
-    const friends = Array.from(this.teamMembers.values())
-      .filter(member => member.userId === userId);
+  async getTeamMembers(teamId: number): Promise<any[]> {
+    // Get all team members for this team
+    const members = Array.from(this.teamMembers.values())
+      .filter(member => member.teamId === teamId);
     
     // Join with user data
-    return friends.map(friend => {
-      const user = this.users.get(friend.friendId);
+    return members.map(member => {
+      const user = this.users.get(member.userId);
       return {
-        id: friend.id,
-        userId: friend.userId,
-        friendId: friend.friendId,
-        createdAt: friend.createdAt,
+        ...member,
         username: user?.username,
         email: user?.email,
         firstName: user?.firstName,
         lastName: user?.lastName,
-        profileImageUrl: user?.profileImageUrl,
-        // Add task statistics for display
-        tasksCompleted: 0, // In a real implementation, this would be calculated
-        tasksAssigned: 0,  // In a real implementation, this would be calculated
-        // Additional display information
-        availability: "Available" // In a real implementation, this might be fetched from user status
+        profileImageUrl: user?.profileImageUrl
       };
     });
   }

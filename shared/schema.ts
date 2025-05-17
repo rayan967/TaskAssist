@@ -25,21 +25,24 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
 });
 
-// FriendList (user connections) table
-export const userFriends = pgTable("user_friends", {
+// Teams table for user collaboration
+export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(), // The user who added the friend
-  friendId: integer("friend_id").notNull(), // The user who was added as a friend
+  name: text("name").notNull(),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  creatorId: integer("creator_id").notNull(),
 });
 
-export const insertFriendSchema = createInsertSchema(userFriends).pick({
-  userId: true,
-  friendId: true,
+// Team-user relationship table
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  userId: integer("user_id").notNull(),
+  role: text("role").default("member"),
+  joinedAt: timestamp("joined_at").defaultNow(),
 });
-
-export type InsertFriend = z.infer<typeof insertFriendSchema>;
-export type UserFriend = typeof userFriends.$inferSelect;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,

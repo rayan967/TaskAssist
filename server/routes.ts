@@ -179,35 +179,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Friend list routes
+  // Team member routes
   
-  // GET user's friends
-  apiRouter.get("/friends/:userId", async (req: Request, res: Response) => {
+  // GET team members
+  apiRouter.get("/team-members/:teamId", async (req: Request, res: Response) => {
     try {
-      const userId = Number(req.params.userId);
+      const teamId = Number(req.params.teamId);
       
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
+      if (isNaN(teamId)) {
+        return res.status(400).json({ message: "Invalid team ID" });
       }
       
-      const friends = await storage.getFriends(userId);
-      res.json(friends);
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
     } catch (error) {
       handleError(res, error);
     }
   });
   
-  // Add friend
-  apiRouter.post("/friends", async (req: Request, res: Response) => {
+  // Add team member
+  apiRouter.post("/team-members", async (req: Request, res: Response) => {
     try {
-      const { userId, friendId } = req.body;
+      const { teamId, userId, role } = req.body;
       
-      if (!userId || !friendId) {
-        return res.status(400).json({ message: "User ID and Friend ID are required" });
+      if (!teamId || !userId) {
+        return res.status(400).json({ message: "Team ID and User ID are required" });
       }
       
-      const newFriend = await storage.addFriend(userId, friendId);
-      res.status(201).json(newFriend);
+      const newMember = await storage.addTeamMember(teamId, userId, role);
+      res.status(201).json(newMember);
     } catch (error) {
       handleError(res, error);
     }
