@@ -278,6 +278,37 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // Get all tasks associated with a user (created by, assigned to, or assigned by)
+  async getUserTasks(userId: number, filter?: string): Promise<Task[]> {
+    // Base query to find tasks where user is creator, assignee, or assigner
+    const baseQuery = or(
+      eq(tasks.userId, userId),
+      eq(tasks.assignedTo, userId),
+      eq(tasks.assignedBy, userId)
+    );
+    
+    // Apply additional filters if specified
+    if (filter === 'active') {
+      return await db.select().from(tasks)
+        .where(and(
+          baseQuery,
+          eq(tasks.completed, false)
+        ))
+        .orderBy(desc(tasks.createdAt));
+    } else if (filter === 'completed') {
+      return await db.select().from(tasks)
+        .where(and(
+          baseQuery,
+          eq(tasks.completed, true)
+        ))
+        .orderBy(desc(tasks.createdAt));
+    } else {
+      return await db.select().from(tasks)
+        .where(baseQuery)
+        .orderBy(desc(tasks.createdAt));
+    }
+  }
+  
   // Get projects for a specific user
   async getProjectsByUserId(userId: number): Promise<Project[]> {
     return await db.select()

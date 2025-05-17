@@ -26,6 +26,7 @@ export interface IStorage {
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: UpdateTask): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
+  getUserTasks(userId: number, filter?: string): Promise<Task[]>;
   
   // Project operations
   getProjects(): Promise<Project[]>;

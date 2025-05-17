@@ -1,6 +1,6 @@
 import { Task, Project } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Star, MoreVertical, UserCircle } from "lucide-react";
 import { 
@@ -13,17 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-
-// Hardcoded team members (in a real app, this would come from the API)
-const teamMembers = [
-  { id: 1, name: "John Smith", role: "Product Manager" },
-  { id: 2, name: "Emily Johnson", role: "UX Designer" },
-  { id: 3, name: "David Lee", role: "Developer" },
-  { id: 4, name: "Lisa Chen", role: "Marketing Specialist" }
-];
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TaskCardProps {
   task: Task;
@@ -33,13 +26,60 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProps) {
-  // Find the assignee if task is assigned
-  const assignee = task.assignedTo ? teamMembers.find(member => member.id === task.assignedTo) : null;
-  
-  // Find who assigned the task (if applicable)
-  const assigner = task.assignedBy ? teamMembers.find(member => member.id === task.assignedBy) : null;
-  
+  const { user } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
+  const [assignee, setAssignee] = useState<any>(null);
+  const [assigner, setAssigner] = useState<any>(null);
+  
+  // Fetch all team members for the current user
+  const currentUserId = user?.id || 1;
+  const { data: teamMembersData = [] } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+  
+  // Create a map of user IDs to user objects from team members data
+  const userMap = new Map();
+  
+  useEffect(() => {
+    // Add the current user to the map
+    if (user) {
+      userMap.set(user.id, {
+        id: user.id,
+        name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username
+      });
+    }
+    
+    // Add all team members to the map
+    if (teamMembersData && teamMembersData.length > 0) {
+      teamMembersData.forEach((member: any) => {
+        if (member.user) {
+          const userData = member.user;
+          userMap.set(userData.id, {
+            id: userData.id,
+            name: userData.firstName && userData.lastName 
+              ? `${userData.firstName} ${userData.lastName}` 
+              : userData.username
+          });
+        }
+      });
+    }
+    
+    // Set assignee and assigner based on the map
+    if (task.assignedTo) {
+      setAssignee(userMap.get(task.assignedTo) || { id: task.assignedTo, name: `User #${task.assignedTo}` });
+    }
+    
+    if (task.assignedBy) {
+      setAssigner(userMap.get(task.assignedBy) || { id: task.assignedBy, name: `User #${task.assignedBy}` });
+    }
+  }, [task, teamMembersData, user]);
   
   const getTimeLabel = () => {
     if (!task.dueDate) return null;
