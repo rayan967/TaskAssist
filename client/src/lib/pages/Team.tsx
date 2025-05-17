@@ -23,64 +23,7 @@ import { AddTaskModal } from "@/components/AddTaskModal";
 import { AssignTaskModal } from "@/components/AssignTaskModal";
 import { AddTeamMemberModal } from "@/components/AddTeamMemberModal";
 
-// Mock team members (in a real app this would be fetched from the backend)
-const teamMembers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    role: "Project Manager",
-    email: "alex@example.com",
-    avatar: "",
-    tasksCompleted: 24,
-    tasksAssigned: 32,
-    phone: "(555) 123-4567",
-    availability: "Available",
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    role: "UI/UX Designer",
-    email: "sarah@example.com",
-    avatar: "",
-    tasksCompleted: 18,
-    tasksAssigned: 23,
-    phone: "(555) 234-5678",
-    availability: "In a meeting",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    role: "Developer",
-    email: "michael@example.com",
-    avatar: "",
-    tasksCompleted: 45,
-    tasksAssigned: 50,
-    phone: "(555) 345-6789",
-    availability: "Away",
-  },
-  {
-    id: 4,
-    name: "Jessica Lee",
-    role: "QA Engineer",
-    email: "jessica@example.com",
-    avatar: "",
-    tasksCompleted: 31,
-    tasksAssigned: 38,
-    phone: "(555) 456-7890",
-    availability: "Available",
-  },
-  {
-    id: 5,
-    name: "David Kim",
-    role: "Backend Developer",
-    email: "david@example.com",
-    avatar: "",
-    tasksCompleted: 27,
-    tasksAssigned: 35,
-    phone: "(555) 567-8901",
-    availability: "Do not disturb",
-  }
-];
+// We'll fetch team members from the API instead of using mock data
 
 export default function Team() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -89,6 +32,9 @@ export default function Team() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
   
+  // Current user ID (would come from auth context in a real app)
+  const currentUserId = 1;
+  
   // Fetch tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
@@ -96,6 +42,38 @@ export default function Team() {
   
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
+  });
+  
+  // Fetch team members (connections)
+  const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+  
+  // Format team members for display
+  const teamMembers = teamMembersData.map((data: any) => {
+    const user = data.user;
+    return {
+      id: user.id,
+      name: user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.username,
+      email: user.email || user.username,
+      profileImageUrl: user.profileImageUrl,
+      // Calculate task stats
+      tasksCompleted: tasks.filter(task => 
+        task.assignedTo === user.id && task.completed).length,
+      tasksAssigned: tasks.filter(task => 
+        task.assignedTo === user.id).length,
+      // Default availability status
+      availability: user.isActive ? "Available" : "Away",
+    };
   });
   
   // Get tasks stats
@@ -135,7 +113,7 @@ export default function Team() {
   
   // Get member by id
   const getMemberById = (id: number) => {
-    return teamMembers.find(member => member.id === id);
+    return teamMembers.find((member: any) => member.id === id);
   };
   
   // Get tasks assigned to member
@@ -327,10 +305,10 @@ export default function Team() {
         <TabsContent value="members">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Team Members</CardTitle>
+              <CardTitle>Team List</CardTitle>
               <Button size="sm" onClick={handleAddMember}>
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Add Member
+                Add Contact
               </Button>
             </CardHeader>
             <CardContent>
@@ -635,7 +613,7 @@ export default function Team() {
       <AddTeamMemberModal
         isOpen={showAddMemberModal}
         onClose={handleCloseModal}
-        teamId={1} // We're using a hardcoded team ID for now (usually this would come from context or URL)
+        currentUserId={1} // Using the current user ID instead of team ID (would come from auth context in a real app)
       />
     </>
   );
