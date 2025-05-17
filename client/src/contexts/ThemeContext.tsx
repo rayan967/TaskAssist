@@ -10,21 +10,21 @@ interface ThemeContextType {
 
 // Create context with default values to avoid undefined errors
 const ThemeContext = createContext<ThemeContextType>({
-  theme: "light",
+  theme: "dark",
   setTheme: () => {},
   toggleTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
   
   // Initialize theme after component is mounted
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(savedTheme || (systemPrefersDark ? "dark" : "light"));
+    // Default to dark mode, only change if user explicitly saved a light theme preference
+    setTheme(savedTheme === "light" ? "light" : "dark");
   }, []);
   
   useEffect(() => {
