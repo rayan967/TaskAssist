@@ -18,6 +18,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  searchUsers(query: string): Promise<User[]>;
   
   // Task operations
   getTasks(filter?: string): Promise<Task[]>;
@@ -31,6 +32,10 @@ export interface IStorage {
   getProjectById(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   
+  // Team operations
+  addTeamMember(teamId: number, userId: number, role?: string): Promise<any>;
+  getTeamMembers(teamId: number): Promise<any[]>;
+  
   // Task summary
   getTaskSummary(): Promise<TaskSummary>;
 }
@@ -39,9 +44,11 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private tasks: Map<number, Task>;
   private projects: Map<number, Project>;
+  private teamMembers: Map<number, any>; // For team members
   private userId: number;
   private taskId: number;
   private projectId: number;
+  private teamMemberId: number;
   
   // Add verification method to MemStorage
   async verifyUser(username: string, password: string): Promise<User | null> {
@@ -59,14 +66,79 @@ export class MemStorage implements IStorage {
     
     return user;
   }
+  
+  // Implementation of searchUsers for MemStorage
+  async searchUsers(query: string): Promise<User[]> {
+    const allUsers = Array.from(this.users.values());
+    const lowerQuery = query.toLowerCase();
+    
+    return allUsers.filter(user => 
+      user.username.toLowerCase().includes(lowerQuery) ||
+      (user.email && user.email.toLowerCase().includes(lowerQuery)) ||
+      (user.firstName && user.firstName.toLowerCase().includes(lowerQuery)) ||
+      (user.lastName && user.lastName.toLowerCase().includes(lowerQuery))
+    ).slice(0, 10); // Limit to 10 results
+  }
+  
+  // Team operations
+  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
+    // Check if user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Check if already a member
+    const existingMember = Array.from(this.teamMembers.values()).find(
+      member => member.teamId === teamId && member.userId === userId
+    );
+    
+    if (existingMember) {
+      throw new Error("User is already a member of this team");
+    }
+    
+    // Add to team
+    const id = this.teamMemberId++;
+    const newMember = {
+      id,
+      teamId,
+      userId,
+      role,
+      joinedAt: new Date()
+    };
+    
+    this.teamMembers.set(id, newMember);
+    return newMember;
+  }
+  
+  async getTeamMembers(teamId: number): Promise<any[]> {
+    // Get all team members for this team
+    const members = Array.from(this.teamMembers.values())
+      .filter(member => member.teamId === teamId);
+    
+    // Join with user data
+    return members.map(member => {
+      const user = this.users.get(member.userId);
+      return {
+        ...member,
+        username: user?.username,
+        email: user?.email,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        profileImageUrl: user?.profileImageUrl
+      };
+    });
+  }
 
   constructor() {
     this.users = new Map();
     this.tasks = new Map();
     this.projects = new Map();
+    this.teamMembers = new Map();
     this.userId = 1;
     this.taskId = 1;
     this.projectId = 1;
+    this.teamMemberId = 1;
     
     // Initialize with default projects
     this.initializeDefaultData();

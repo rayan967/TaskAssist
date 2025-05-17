@@ -118,6 +118,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search users
+  apiRouter.get("/users/search", authenticate, async (req: Request, res: Response) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const users = await storage.searchUsers(query);
+      res.json(users);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
   // GET all projects
   apiRouter.get("/projects", async (req: Request, res: Response) => {
     try {
@@ -155,6 +170,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(project);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Team member routes
+  
+  // GET team members
+  apiRouter.get("/team-members/:teamId", authenticate, async (req: Request, res: Response) => {
+    try {
+      const teamId = Number(req.params.teamId);
+      
+      if (isNaN(teamId)) {
+        return res.status(400).json({ message: "Invalid team ID" });
+      }
+      
+      const members = await storage.getTeamMembers(teamId);
+      res.json(members);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Add team member
+  apiRouter.post("/team-members", authenticate, async (req: Request, res: Response) => {
+    try {
+      const { teamId, userId, role } = req.body;
+      
+      if (!teamId || !userId) {
+        return res.status(400).json({ message: "Team ID and User ID are required" });
+      }
+      
+      const newMember = await storage.addTeamMember(teamId, userId, role);
+      res.status(201).json(newMember);
     } catch (error) {
       handleError(res, error);
     }

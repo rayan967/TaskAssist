@@ -4,6 +4,7 @@ import {
   tasks, 
   projects, 
   users, 
+  teamMembers,
   type Task, 
   type Project,
   type User, 
@@ -43,6 +44,68 @@ export class DatabaseStorage implements IStorage {
       .returning();
       
     return user;
+  }
+
+  async searchUsers(query: string): Promise<User[]> {
+    // Search by username, email, or name
+    const lowerQuery = `%${query.toLowerCase()}%`;
+    return await db.select()
+      .from(users)
+      .where(
+        sql`LOWER(${users.username}) LIKE ${lowerQuery} OR 
+            LOWER(${users.email}) LIKE ${lowerQuery} OR 
+            LOWER(${users.firstName}) LIKE ${lowerQuery} OR 
+            LOWER(${users.lastName}) LIKE ${lowerQuery}`
+      )
+      .limit(10); // Limit results for performance
+  }
+
+  // Team operations
+  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
+    // First check if the member is already in the team
+    const existingMember = await db.select()
+      .from(teamMembers)
+      .where(
+        and(
+          eq(teamMembers.teamId, teamId),
+          eq(teamMembers.userId, userId)
+        )
+      );
+
+    if (existingMember.length > 0) {
+      throw new Error("User is already a member of this team");
+    }
+
+    // Add user to team
+    const [newMember] = await db.insert(teamMembers)
+      .values({
+        teamId,
+        userId,
+        role,
+        joinedAt: new Date()
+      })
+      .returning();
+      
+    return newMember;
+  }
+  
+  async getTeamMembers(teamId: number): Promise<any[]> {
+    // Join with users table to get member details
+    return await db.select({
+      id: teamMembers.id,
+      userId: teamMembers.userId,
+      teamId: teamMembers.teamId,
+      role: teamMembers.role,
+      joinedAt: teamMembers.joinedAt,
+      username: users.username,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl
+    })
+    .from(teamMembers)
+    .innerJoin(users, eq(teamMembers.userId, users.id))
+    .where(eq(teamMembers.teamId, teamId));
   }
 
   // Task operations

@@ -21,6 +21,7 @@ import { User as UserType, Task, Project } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { AssignTaskModal } from "@/components/AssignTaskModal";
+import { AddTeamMemberModal } from "@/components/AddTeamMemberModal";
 
 // Mock team members (in a real app this would be fetched from the backend)
 const teamMembers = [
