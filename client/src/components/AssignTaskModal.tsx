@@ -46,34 +46,7 @@ interface AssignTaskModalProps {
   editingTask?: Task;
 }
 
-// Mock team members (in a real app, this would come from the API)
-const teamMembers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    role: "Project Manager",
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    role: "UI/UX Designer",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    role: "Developer",
-  },
-  {
-    id: 4,
-    name: "Jessica Lee",
-    role: "QA Engineer",
-  },
-  {
-    id: 5,
-    name: "David Kim",
-    role: "Backend Developer",
-  }
-];
+// Team members will be fetched from the API
 
 export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: AssignTaskModalProps) {
   // Use useEffect to ensure date is set when the component is rendered with editingTask
@@ -96,6 +69,32 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
   // Get projects for the dropdown
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
+  });
+  
+  // Current user ID (would come from auth context in a real app)
+  const currentUserId = 1;
+  
+  // Fetch team members (connections)
+  const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+  
+  // Format team members for display
+  const teamMembers = teamMembersData.map((data: any) => {
+    const user = data.user;
+    return {
+      id: user.id,
+      name: user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.username,
+    };
   });
   
   // Set up the form
@@ -338,11 +337,17 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={String(member.id)}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
+                        {isLoadingTeamMembers ? (
+                          <SelectItem value="loading">Loading contacts...</SelectItem>
+                        ) : teamMembers.length > 0 ? (
+                          teamMembers.map((member: any) => (
+                            <SelectItem key={member.id} value={String(member.id)}>
+                              {member.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none">No contacts found</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

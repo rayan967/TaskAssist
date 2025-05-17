@@ -325,15 +325,9 @@ export default function Team() {
                           <AvatarFallback className="text-xl">{member.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <h3 className="font-bold text-lg mb-1">{member.name}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-3">{member.role}</p>
+                        <p className="text-gray-500 dark:text-gray-400 mb-3">{member.email}</p>
                         <Badge 
-                          variant={
-                            member.availability === "Available" 
-                              ? "default" 
-                              : member.availability === "Away" || member.availability === "In a meeting"
-                                ? "secondary"
-                                : "outline"
-                          }
+                          variant={member.availability === "Available" ? "default" : "secondary"}
                           className="mb-4"
                         >
                           {member.availability}
@@ -375,16 +369,11 @@ export default function Team() {
                       </AvatarFallback>
                     </Avatar>
                     <h3 className="font-bold text-xl mb-1">{getMemberById(selectedMember)?.name}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">{getMemberById(selectedMember)?.role}</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">{getMemberById(selectedMember)?.email}</p>
                     
                     <Badge 
-                      variant={
-                        getMemberById(selectedMember)?.availability === "Available" 
-                          ? "default" 
-                          : getMemberById(selectedMember)?.availability === "Away" || getMemberById(selectedMember)?.availability === "In a meeting"
-                            ? "secondary"
-                            : "outline"
-                      }
+                      variant={getMemberById(selectedMember)?.availability === "Available" 
+                        ? "default" : "secondary"}
                       className="mb-6"
                     >
                       {getMemberById(selectedMember)?.availability}
@@ -394,11 +383,6 @@ export default function Team() {
                       <div className="flex items-center text-sm space-x-2">
                         <Mail className="h-4 w-4 text-gray-500" />
                         <span>{getMemberById(selectedMember)?.email}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-sm space-x-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span>{getMemberById(selectedMember)?.phone}</span>
                       </div>
                       
                       <Button className="w-full">
