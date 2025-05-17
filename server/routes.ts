@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Search users
-  apiRouter.get("/users/search", authenticate, async (req: Request, res: Response) => {
+  apiRouter.get("/users/search", async (req: Request, res: Response) => {
     try {
       const query = req.query.q as string;
       if (!query) {
@@ -127,6 +127,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const users = await storage.searchUsers(query);
+      
+      // Log to help with debugging
+      console.log(`Searching for "${query}", found ${users.length} users`);
+      
       res.json(users);
     } catch (error) {
       handleError(res, error);

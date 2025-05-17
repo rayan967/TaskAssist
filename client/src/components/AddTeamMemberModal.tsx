@@ -29,7 +29,16 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
       
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+      // Get the auth token from localStorage
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to search users');
       }
