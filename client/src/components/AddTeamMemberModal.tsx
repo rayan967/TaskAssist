@@ -14,10 +14,10 @@ import { User } from "@shared/schema";
 interface AddTeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamId: number;
+  currentUserId: number; // The current user who's adding a friend
 }
 
-export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberModalProps) {
+export function AddTeamMemberModal({ isOpen, onClose, currentUserId }: AddTeamMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
@@ -47,26 +47,26 @@ export function AddTeamMemberModal({ isOpen, onClose, teamId }: AddTeamMemberMod
     enabled: searchQuery.length >= 2
   });
 
-  // Mutation to add user to team
+  // Mutation to add user to team (friend list)
   const addUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
+    mutationFn: async (userId2: number) => {
       const response = await fetch('/api/team-members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId, userId })
+        body: JSON.stringify({ userId1: currentUserId, userId2 })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to add user to team');
+        throw new Error('Failed to add user to your team');
       }
       
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
       toast({
-        title: "User added to team",
-        description: "The user has been successfully added to your team.",
+        title: "User added to your team",
+        description: "The user has been successfully added to your team list.",
       });
       onClose();
       setSelectedUser(null);

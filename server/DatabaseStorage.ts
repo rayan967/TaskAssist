@@ -1,17 +1,19 @@
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql } from "drizzle-orm";
 import { db } from "./db";
 import { 
   tasks, 
   projects, 
   users, 
-  teamMembers,
+  teams,
   type Task, 
   type Project,
   type User, 
+  type Team,
   type InsertTask, 
   type UpdateTask,
   type InsertProject,
   type InsertUser,
+  type InsertTeam,
   type TaskSummary
 } from "@shared/schema";
 import { IStorage } from "./storage";
@@ -60,69 +62,94 @@ export class DatabaseStorage implements IStorage {
       .limit(10); // Limit results for performance
   }
 
-  // Team operations
-  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
-    // First check if the member is already in the team
-    const existingMember = await db.select()
-      .from(teamMembers)
+  // Team operations (friend list style)
+  async addTeamMember(userId1: number, userId2: number): Promise<any> {
+    // Check if both users exist
+    const [user1] = await db.select().from(users).where(eq(users.id, userId1));
+    const [user2] = await db.select().from(users).where(eq(users.id, userId2));
+    
+    if (!user1 || !user2) {
+      throw new Error("One or both users not found");
+    }
+    
+    // Check if already connected
+    const existingConnections = await db.select()
+      .from(teams)
       .where(
-        and(
-          eq(teamMembers.teamId, teamId),
-          eq(teamMembers.userId, userId)
+        or(
+          and(
+            eq(teams.userId1, userId1),
+            eq(teams.userId2, userId2)
+          ),
+          and(
+            eq(teams.userId1, userId2),
+            eq(teams.userId2, userId1)
+          )
         )
       );
 
-    if (existingMember.length > 0) {
-      throw new Error("User is already a member of this team");
+    if (existingConnections.length > 0) {
+      throw new Error("Users are already connected");
     }
 
-    // Add user to team
-    const [newMember] = await db.insert(teamMembers)
-      .values({
-        teamId,
-        userId,
-        role,
-        joinedAt: new Date()
-      })
-      .returning();
-      
-    return newMember;
+    // Add bidirectional connections (user1 -> user2 and user2 -> user1)
+    await db.insert(teams).values([
+      { userId1, userId2, createdAt: new Date() },
+      { userId1: userId2, userId2: userId1, createdAt: new Date() }
+    ]);
+    
+    // Return user2 details for display (excluding password)
+    const { password, ...user2WithoutPassword } = user2;
+    return user2WithoutPassword;
   }
   
-  async getTeamMembers(teamId: number): Promise<any[]> {
-    // Join with users table to get member details
-    return await db.select({
-      id: teamMembers.id,
-      userId: teamMembers.userId,
-      teamId: teamMembers.teamId,
-      role: teamMembers.role,
-      joinedAt: teamMembers.joinedAt,
+  async getTeamMembers(userId: number): Promise<any[]> {
+    // Join with users table to get connected user details
+    const connections = await db.select({
+      id: teams.id,
+      connectedUserId: teams.userId2,
       username: users.username,
       email: users.email,
       firstName: users.firstName,
       lastName: users.lastName,
-      profileImageUrl: users.profileImageUrl
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      isActive: users.isActive
     })
-    .from(teamMembers)
-    .innerJoin(users, eq(teamMembers.userId, users.id))
-    .where(eq(teamMembers.teamId, teamId));
+    .from(teams)
+    .innerJoin(users, eq(teams.userId2, users.id))
+    .where(eq(teams.userId1, userId));
+    
+    // Format the results to match the expected structure
+    return connections.map(connection => ({
+      connection: connection.id,
+      user: {
+        id: connection.connectedUserId,
+        username: connection.username,
+        email: connection.email,
+        firstName: connection.firstName,
+        lastName: connection.lastName,
+        profileImageUrl: connection.profileImageUrl,
+        role: connection.role,
+        isActive: connection.isActive
+      }
+    }));
   }
 
   // Task operations
   async getTasks(filter?: string): Promise<Task[]> {
-    let query = db.select().from(tasks);
-    
-    // Apply filters
     if (filter === 'active') {
-      query = query.where(eq(tasks.completed, false));
+      return await db.select().from(tasks)
+        .where(eq(tasks.completed, false))
+        .orderBy(desc(tasks.createdAt));
     } else if (filter === 'completed') {
-      query = query.where(eq(tasks.completed, true));
+      return await db.select().from(tasks)
+        .where(eq(tasks.completed, true))
+        .orderBy(desc(tasks.createdAt));
+    } else {
+      return await db.select().from(tasks)
+        .orderBy(desc(tasks.createdAt));
     }
-    
-    // Order by creation date (newest first)
-    query = query.orderBy(desc(tasks.createdAt));
-    
-    return await query;
   }
   
   async getTaskById(id: number): Promise<Task | undefined> {
@@ -163,12 +190,13 @@ export class DatabaseStorage implements IStorage {
   
   async deleteTask(id: number): Promise<boolean> {
     const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // Project operations
   async getProjects(): Promise<Project[]> {
-    return await db.select().from(projects);
+    const projectsList = await db.select().from(projects);
+    return projectsList;
   }
   
   async getProjectById(id: number): Promise<Project | undefined> {
@@ -229,18 +257,25 @@ export class DatabaseStorage implements IStorage {
   
   // Get tasks for a specific user
   async getTasksByUserId(userId: number, filter?: string): Promise<Task[]> {
-    let query = db.select()
-      .from(tasks)
-      .where(eq(tasks.userId, userId));
-    
-    // Apply additional filters if needed
     if (filter === 'active') {
-      query = query.where(eq(tasks.completed, false));
+      return await db.select().from(tasks)
+        .where(and(
+          eq(tasks.userId, userId),
+          eq(tasks.completed, false)
+        ))
+        .orderBy(desc(tasks.createdAt));
     } else if (filter === 'completed') {
-      query = query.where(eq(tasks.completed, true));
+      return await db.select().from(tasks)
+        .where(and(
+          eq(tasks.userId, userId),
+          eq(tasks.completed, true)
+        ))
+        .orderBy(desc(tasks.createdAt));
+    } else {
+      return await db.select().from(tasks)
+        .where(eq(tasks.userId, userId))
+        .orderBy(desc(tasks.createdAt));
     }
-    
-    return await query;
   }
   
   // Get projects for a specific user

@@ -32,9 +32,9 @@ export interface IStorage {
   getProjectById(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   
-  // Team operations
-  addTeamMember(teamId: number, userId: number, role?: string): Promise<any>;
-  getTeamMembers(teamId: number): Promise<any[]>;
+  // Team operations (friend list style)
+  addTeamMember(userId1: number, userId2: number): Promise<any>;
+  getTeamMembers(userId: number): Promise<any[]>;
   
   // Task summary
   getTaskSummary(): Promise<TaskSummary>;
@@ -88,54 +88,69 @@ export class MemStorage implements IStorage {
     });
   }
   
-  // Team operations
-  async addTeamMember(teamId: number, userId: number, role: string = "member"): Promise<any> {
-    // Check if user exists
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error("User not found");
+  // Team operations (friend list style)
+  async addTeamMember(userId1: number, userId2: number): Promise<any> {
+    // Check if both users exist
+    const user1 = await this.getUser(userId1);
+    const user2 = await this.getUser(userId2);
+    
+    if (!user1 || !user2) {
+      throw new Error("One or both users not found");
     }
     
-    // Check if already a member
-    const existingMember = Array.from(this.teamMembers.values()).find(
-      member => member.teamId === teamId && member.userId === userId
+    // Check if already connected
+    const existingConnection = Array.from(this.teamMembers.values()).find(
+      team => (team.userId1 === userId1 && team.userId2 === userId2) || 
+              (team.userId1 === userId2 && team.userId2 === userId1)
     );
     
-    if (existingMember) {
-      throw new Error("User is already a member of this team");
+    if (existingConnection) {
+      throw new Error("Users are already connected");
     }
     
-    // Add to team
-    const id = this.teamMemberId++;
-    const newMember = {
-      id,
-      teamId,
-      userId,
-      role,
-      joinedAt: new Date()
+    // Add bidirectional connections (user1 -> user2 and user2 -> user1)
+    const id1 = this.teamMemberId++;
+    const connection1 = {
+      id: id1,
+      userId1,
+      userId2,
+      createdAt: new Date()
     };
     
-    this.teamMembers.set(id, newMember);
-    return newMember;
+    const id2 = this.teamMemberId++;
+    const connection2 = {
+      id: id2,
+      userId1: userId2,
+      userId2: userId1,
+      createdAt: new Date()
+    };
+    
+    this.teamMembers.set(id1, connection1);
+    this.teamMembers.set(id2, connection2);
+    
+    // Return the user information for display
+    const { password: _, ...user2WithoutPassword } = user2;
+    return user2WithoutPassword;
   }
   
-  async getTeamMembers(teamId: number): Promise<any[]> {
-    // Get all team members for this team
-    const members = Array.from(this.teamMembers.values())
-      .filter(member => member.teamId === teamId);
+  async getTeamMembers(userId: number): Promise<any[]> {
+    // Get all user connections where userId is in userId1
+    const connections = Array.from(this.teamMembers.values())
+      .filter(team => team.userId1 === userId);
     
-    // Join with user data
-    return members.map(member => {
-      const user = this.users.get(member.userId);
+    // Get user details for all connections
+    return connections.map(connection => {
+      const connectedUser = this.users.get(connection.userId2);
+      if (!connectedUser) return null;
+      
+      // Don't expose password
+      const { password: _, ...userWithoutPassword } = connectedUser;
+      
       return {
-        ...member,
-        username: user?.username,
-        email: user?.email,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        profileImageUrl: user?.profileImageUrl
+        connection: connection.id,
+        user: userWithoutPassword
       };
-    });
+    }).filter(item => item !== null); // Filter out null entries (in case user not found)
   }
 
   constructor() {
@@ -206,16 +221,45 @@ export class MemStorage implements IStorage {
       this.users.set(user.id, user);
     });
     
-    // Team data
-    const defaultTeamId = 1;
-    const defaultTeam = {
-      id: defaultTeamId,
-      name: "Development Team",
-      description: "Core product development team",
-      creatorId: 1, // Admin user
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    // Set up team connections (friend list style)
+    // User 1 (admin) is connected to user 2 (john) and user 3 (sarah)
+    // User 2 (john) is connected to user 1 (admin)
+    // User 3 (sarah) is connected to user 1 (admin)
+    
+    const teamConnections = [
+      // admin -> john
+      {
+        id: this.teamMemberId++,
+        userId1: 1, // admin
+        userId2: 2, // john
+        createdAt: new Date()
+      },
+      // john -> admin
+      {
+        id: this.teamMemberId++,
+        userId1: 2, // john
+        userId2: 1, // admin
+        createdAt: new Date()
+      },
+      // admin -> sarah
+      {
+        id: this.teamMemberId++,
+        userId1: 1, // admin
+        userId2: 3, // sarah
+        createdAt: new Date()
+      },
+      // sarah -> admin
+      {
+        id: this.teamMemberId++,
+        userId1: 3, // sarah
+        userId2: 1, // admin
+        createdAt: new Date()
+      }
+    ];
+    
+    teamConnections.forEach(connection => {
+      this.teamMembers.set(connection.id, connection);
+    });
     
     // Add default projects with user association
     const defaultProjects = [
@@ -234,7 +278,7 @@ export class MemStorage implements IStorage {
         name: "Work", 
         color: "#10B981", 
         userId: 1,
-        teamId: defaultTeamId,
+        teamId: null, // No team hierarchy anymore
         isPublic: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -254,7 +298,7 @@ export class MemStorage implements IStorage {
         name: "Marketing", 
         color: "#8B5CF6", 
         userId: 2,
-        teamId: defaultTeamId,
+        teamId: null, // No team hierarchy anymore
         isPublic: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -264,7 +308,7 @@ export class MemStorage implements IStorage {
         name: "Research", 
         color: "#EC4899", 
         userId: 3,
-        teamId: defaultTeamId,
+        teamId: null, // No team hierarchy anymore
         isPublic: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -318,7 +362,7 @@ export class MemStorage implements IStorage {
         assignedTo: 2,
         assignedBy: 1,
         userId: 1,
-        teamId: defaultTeamId,
+        teamId: null,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -366,7 +410,7 @@ export class MemStorage implements IStorage {
         assignedTo: 3,
         assignedBy: 1,
         userId: 1,
-        teamId: defaultTeamId,
+        teamId: null,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -398,7 +442,7 @@ export class MemStorage implements IStorage {
         assignedTo: 2,
         assignedBy: 2,
         userId: 2,
-        teamId: defaultTeamId,
+        teamId: null,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -414,7 +458,7 @@ export class MemStorage implements IStorage {
         assignedTo: 3,
         assignedBy: 3,
         userId: 3,
-        teamId: defaultTeamId,
+        teamId: null,
         createdAt: new Date(),
         updatedAt: new Date()
       }

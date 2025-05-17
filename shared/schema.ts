@@ -25,23 +25,17 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
 });
 
-// Teams table for user collaboration
+// Teams table for user connections (friend list style)
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
+  userId1: integer("user_id1").notNull(),
+  userId2: integer("user_id2").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  creatorId: integer("creator_id").notNull(),
 });
 
-// Team-user relationship table
-export const teamMembers = pgTable("team_members", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id").notNull(),
-  userId: integer("user_id").notNull(),
-  role: text("role").default("member"),
-  joinedAt: timestamp("joined_at").defaultNow(),
+export const insertTeamSchema = createInsertSchema(teams).pick({
+  userId1: true,
+  userId2: true,
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -60,6 +54,8 @@ export const loginUserSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginUser = z.infer<typeof loginUserSchema>;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type Team = typeof teams.$inferSelect;
 
 // Define project categories for tasks
 export const projects = pgTable("projects", {
