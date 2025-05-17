@@ -163,6 +163,12 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
         updatedTask.dueDate = date as any;
       }
       
+      // If the task is being reassigned, update the assignedBy field
+      if (updatedTask.assignedTo !== editingTask?.assignedTo) {
+        // We're using a fixed user ID (1) for now, but in a real app this would come from auth context
+        updatedTask.assignedBy = 1;
+      }
+      
       // Use fetch to make the PATCH request
       const response = await fetch(`/api/tasks/${editingTask!.id}`, {
         method: 'PATCH',
