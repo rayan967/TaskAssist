@@ -33,6 +33,7 @@ import {
 // Schema for the form
 const formSchema = insertTaskSchema.extend({
   assignedTo: z.number().optional(),
+  userId: z.number().default(1),
 });
 
 // Type for the form values
