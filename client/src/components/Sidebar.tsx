@@ -61,15 +61,15 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 <span className="truncate">Calendar</span>
               </div>
             </Link>
-            <Link href="/team">
+            <Link href="/friends">
               <div className={cn(
                 "flex items-center px-4 py-2.5 text-sm rounded-lg font-medium cursor-pointer",
-                location === "/team" 
+                location === "/friends" || location === "/team"
                   ? "bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400" 
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               )}>
-                <i className="ri-team-line mr-3 text-lg shrink-0"></i>
-                <span className="truncate">Team</span>
+                <i className="ri-user-shared-line mr-3 text-lg shrink-0"></i>
+                <span className="truncate">Friends</span>
               </div>
             </Link>
             <div className="flex items-center px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer">
