@@ -42,7 +42,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
   // Get current user from auth context
   const { user } = useAuth();
   const currentUserId = user?.id || 1; // Default to 1 if not authenticated
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,26 +56,35 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       userId: currentUserId, // Adding default userId which is required
     },
   });
-  
+
   // Update form when editingTask changes
   useEffect(() => {
     if (editingTask) {
+      // Make sure priority has correct capitalization (Low, Medium, High)
+      let priority = editingTask.priority || "Medium";
+      if (priority.toLowerCase() === "low") priority = "Low";
+      if (priority.toLowerCase() === "medium") priority = "Medium";
+      if (priority.toLowerCase() === "high") priority = "High";
+      
       form.reset({
         title: editingTask.title,
         description: editingTask.description || "",
         projectId: editingTask.projectId || 1,
-        priority: editingTask.priority || "medium",
+        priority: priority,
         dueDate: editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
         completed: editingTask.completed,
         starred: editingTask.starred,
         userId: editingTask.userId || currentUserId,
       });
+      
+      // Force the priority field to update properly
+      form.setValue("priority", priority);
     } else {
       form.reset({
         title: "",
         description: "",
         projectId: 1,
-        priority: "medium",
+        priority: "Medium", // Consistent capitalization 
         dueDate: undefined,
         completed: false,
         starred: false,
@@ -83,7 +92,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       });
     }
   }, [editingTask, form]);
-  
+
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: FormValues) => {
       const res = await apiRequest({
@@ -111,11 +120,11 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       });
     }
   });
-  
+
   const updateTaskMutation = useMutation({
     mutationFn: async (updatedTask: FormValues) => {
       if (!editingTask) return null;
-      
+
       const res = await apiRequest({
         method: 'PATCH',
         url: `/api/tasks/${editingTask.id}`,
@@ -141,28 +150,28 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       });
     }
   });
-  
+
   const onSubmit = (values: FormValues) => {
     // Adding userId field which is required according to the schema
     const taskData = {
       ...values,
       userId: currentUserId, // Using a default user ID for now
     };
-    
+
     if (editingTask) {
       updateTaskMutation.mutate(taskData);
     } else {
       createTaskMutation.mutate(taskData);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editingTask ? "Edit Task" : "Add New Task"}</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -178,7 +187,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -192,7 +201,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -221,7 +230,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="dueDate"
@@ -264,48 +273,49 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="priority"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue="medium"
-                      value={field.value as string}
-                      className="flex space-x-2"
-                    >
-                      <FormItem className="flex items-center justify-center space-y-0 border border-gray-200 dark:border-gray-700 rounded-md py-2 px-3 w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <FormControl>
-                          <RadioGroupItem value="low" className="sr-only" />
-                        </FormControl>
-                        <span className="text-sm font-medium mr-2">Low</span>
-                        <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                      </FormItem>
-                      <FormItem className="flex items-center justify-center space-y-0 border border-gray-200 dark:border-gray-700 rounded-md py-2 px-3 w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <FormControl>
-                          <RadioGroupItem value="medium" className="sr-only" />
-                        </FormControl>
-                        <span className="text-sm font-medium mr-2">Medium</span>
-                        <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                      </FormItem>
-                      <FormItem className="flex items-center justify-center space-y-0 border border-gray-200 dark:border-gray-700 rounded-md py-2 px-3 w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <FormControl>
-                          <RadioGroupItem value="high" className="sr-only" />
-                        </FormControl>
-                        <span className="text-sm font-medium mr-2">High</span>
-                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value || "Medium"}
+                    value={field.value || "Medium"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Low">
+                        <div className="flex items-center">
+                          <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                          <span>Low</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Medium">
+                        <div className="flex items-center">
+                          <span className="h-2 w-2 rounded-full bg-amber-500 mr-2"></span>
+                          <span>Medium</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="High">
+                        <div className="flex items-center">
+                          <span className="h-2 w-2 rounded-full bg-red-500 mr-2"></span>
+                          <span>High</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

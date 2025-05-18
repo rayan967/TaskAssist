@@ -36,16 +36,16 @@ export default function Team() {
   // Get current user from auth context
   const { user } = useAuth();
   const currentUserId = user?.id || 1; // Default to 1 if not authenticated
-  
+
   // Fetch tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
-  
+
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
+
   // Fetch team members (connections)
   const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
     queryKey: ['/api/team-members', currentUserId],
@@ -57,7 +57,7 @@ export default function Team() {
       return response.json();
     },
   });
-  
+
   // Format team members for display
   const teamMembers = teamMembersData.map((data: any) => {
     const user = data.user;
@@ -77,15 +77,15 @@ export default function Team() {
       availability: user.isActive ? "Available" : "Away",
     };
   });
-  
+
   // Get tasks stats
   const getTaskStats = () => {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.completed).length;
     const pendingTasks = totalTasks - completedTasks;
-    
+
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    
+
     return {
       total: totalTasks,
       completed: completedTasks,
@@ -93,14 +93,14 @@ export default function Team() {
       completionRate: Math.round(completionRate)
     };
   };
-  
+
   // Get project stats
   const getProjectStats = () => {
     return projects.map(project => {
       const projectTasks = tasks.filter(task => task.projectId === project.id);
       const totalTasks = projectTasks.length;
       const completedTasks = projectTasks.filter(task => task.completed).length;
-      
+
       return {
         ...project,
         totalTasks,
@@ -109,51 +109,51 @@ export default function Team() {
       };
     });
   };
-  
+
   const taskStats = getTaskStats();
   const projectStats = getProjectStats();
-  
+
   // Get member by id
   const getMemberById = (id: number) => {
     return teamMembers.find((member: any) => member.id === id);
   };
-  
+
   // Get tasks assigned to member
   const getTasksForMember = (memberId: number) => {
     return tasks.filter(task => task.assignedTo === memberId);
   };
-  
+
   // Handle view member details
   const handleViewMember = (id: number) => {
     setSelectedMember(id);
     setActiveTab("details");
   };
-  
+
   // Handle assign task
   const handleAssignTask = (memberId?: number) => {
     setEditingTask(undefined);
     setSelectedMember(memberId || null);
     setShowTaskModal(true);
   };
-  
+
   // Handle edit task
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowTaskModal(true);
   };
-  
+
   // Close modals
   const handleCloseModal = () => {
     setShowTaskModal(false);
     setShowAddMemberModal(false);
     setEditingTask(undefined);
   };
-  
+
   // Handle adding a new team member
   const handleAddMember = () => {
     setShowAddMemberModal(true);
   };
-  
+
   return (
     <>
       <div className="mb-8 mt-6">
@@ -162,7 +162,7 @@ export default function Team() {
           Manage your team and track progress on tasks and projects
         </p>
       </div>
-      
+
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -171,7 +171,7 @@ export default function Team() {
             Member Details
           </TabsTrigger>
         </TabsList>
-        
+
         {/* Overview Tab */}
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -188,7 +188,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -207,7 +207,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -222,7 +222,7 @@ export default function Team() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -256,7 +256,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Team Members</CardTitle>
@@ -302,7 +302,7 @@ export default function Team() {
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Team Members Tab */}
         <TabsContent value="members">
           <Card>
@@ -334,7 +334,7 @@ export default function Team() {
                         >
                           {member.availability}
                         </Badge>
-                        
+
                         <div className="w-full space-y-2 mb-4">
                           <div className="flex justify-between text-sm">
                             <span>Tasks Progress</span>
@@ -345,7 +345,7 @@ export default function Team() {
                             className="h-2"
                           />
                         </div>
-                        
+
                         <Button variant="outline" className="w-full" onClick={() => handleViewMember(member.id)}>
                           View Profile
                         </Button>
@@ -357,7 +357,7 @@ export default function Team() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Member Details Tab */}
         <TabsContent value="details">
           {selectedMember && (
@@ -372,7 +372,7 @@ export default function Team() {
                     </Avatar>
                     <h3 className="font-bold text-xl mb-1">{getMemberById(selectedMember)?.name}</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">{getMemberById(selectedMember)?.email}</p>
-                    
+
                     <Badge 
                       variant={getMemberById(selectedMember)?.availability === "Available" 
                         ? "default" : "secondary"}
@@ -380,14 +380,23 @@ export default function Team() {
                     >
                       {getMemberById(selectedMember)?.availability}
                     </Badge>
-                    
+
                     <div className="w-full space-y-4">
                       <div className="flex items-center text-sm space-x-2">
                         <Mail className="h-4 w-4 text-gray-500" />
                         <span>{getMemberById(selectedMember)?.email}</span>
                       </div>
-                      
-                      <Button className="w-full">
+
+                      <Button 
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click event
+                          const email = getMemberById(selectedMember)?.email;
+                          if (email) {
+                            window.location.href = `mailto:${email}`;
+                          }
+                        }}
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Send Message
                       </Button>
@@ -395,7 +404,7 @@ export default function Team() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -422,7 +431,7 @@ export default function Team() {
                           className="h-2"
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="p-4">
@@ -432,7 +441,7 @@ export default function Team() {
                             </div>
                           </CardContent>
                         </Card>
-                        
+
                         <Card>
                           <CardContent className="p-4">
                             <div className="flex flex-col items-center">
@@ -445,7 +454,7 @@ export default function Team() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Assigned Tasks</CardTitle>
@@ -458,7 +467,7 @@ export default function Team() {
                       <div className="space-y-3">
                         {getTasksForMember(selectedMember).map(task => {
                           const project = projects.find(p => p.id === task.projectId);
-                          
+
                           return (
                             <div
                               key={task.id}
@@ -494,14 +503,14 @@ export default function Team() {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center gap-2">
                                 {task.dueDate && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
                                     Due {new Date(task.dueDate as any).toLocaleDateString()}
                                   </span>
                                 )}
-                                
+
                                 {task.priority && (
                                   <Badge
                                     variant={
@@ -542,7 +551,7 @@ export default function Team() {
                     )}
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
@@ -558,7 +567,7 @@ export default function Team() {
                           <p className="text-sm text-gray-500">2 hours ago</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start space-x-3">
                         <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
                           <Calendar className="h-5 w-5 text-primary-500" />
@@ -568,7 +577,7 @@ export default function Team() {
                           <p className="text-sm text-gray-500">Yesterday at 3:30 PM</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start space-x-3">
                         <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
                           <MessageSquare className="h-5 w-5 text-primary-500" />
@@ -586,7 +595,7 @@ export default function Team() {
           )}
         </TabsContent>
       </Tabs>
-      
+
       {/* Task assignment modal */}
       <AssignTaskModal
         isOpen={showTaskModal}
@@ -594,7 +603,7 @@ export default function Team() {
         memberId={selectedMember || undefined}
         editingTask={editingTask}
       />
-      
+
       {/* Add team member modal */}
       <AddTeamMemberModal
         isOpen={showAddMemberModal}

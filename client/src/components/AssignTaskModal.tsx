@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import {useAuth} from "@/contexts/AuthContext.tsx";
+import { useAuth } from "@/contexts/AuthContext.tsx";
 
 // Schema for the form
 const formSchema = insertTaskSchema.extend({
@@ -47,35 +47,85 @@ interface AssignTaskModalProps {
   editingTask?: Task;
 }
 
-// Team members will be fetched from the API
-
 export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: AssignTaskModalProps) {
-  // Use useEffect to ensure date is set when the component is rendered with editingTask
   const [date, setDate] = useState<Date | undefined>(
     editingTask?.dueDate ? new Date(editingTask.dueDate as any) : undefined
   );
-  
-  // Update the date when editingTask changes
-  useEffect(() => {
-    if (editingTask?.dueDate) {
-      setDate(new Date(editingTask.dueDate as any));
-    } else {
-      setDate(undefined);
-    }
-  }, [editingTask]);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Get projects for the dropdown
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1;
+
+  // Helper function to format priority consistently
+  const formatPriority = (priority?: string | null): "Low" | "Medium" | "High" => {
+    if (!priority) return "Medium";
+    const lowerPriority = priority.toLowerCase();
+    if (lowerPriority === "low") return "Low";
+    if (lowerPriority === "medium") return "Medium";
+    if (lowerPriority === "high") return "High";
+    return "Medium";
+  };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      projectId: null,
+      priority: "Medium",
+      completed: false,
+      starred: false,
+      assignedTo: memberId,
+      userId: currentUserId,
+    }
+  });
+
+  // Update form when editingTask changes
+  useEffect(() => {
+    if (editingTask) {
+      const priority = formatPriority(editingTask.priority);
+      
+      if (editingTask.dueDate) {
+        setDate(new Date(editingTask.dueDate as any));
+      }
+      
+      form.reset({
+        title: editingTask.title,
+        description: editingTask.description || "",
+        projectId: editingTask.projectId || null,
+        priority: priority,
+        completed: editingTask.completed || false,
+        starred: editingTask.starred || false,
+        assignedTo: editingTask.assignedTo as number | undefined || memberId,
+        userId: editingTask.userId || currentUserId,
+      });
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        projectId: null,
+        priority: "Medium",
+        completed: false,
+        starred: false,
+        assignedTo: memberId,
+        userId: currentUserId,
+      });
+    }
+  }, [editingTask, form, memberId, currentUserId]);
+
+  // Ensure memberId is set in the form if provided
+  useEffect(() => {
+    if (memberId) {
+      form.setValue('assignedTo', memberId);
+    }
+  }, [memberId, form]);
+
+  // Fetch projects for the dropdown
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
 
-  // Get current user from auth context
-  const { user } = useAuth();
-  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
-  
   // Fetch team members (connections)
   const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
     queryKey: ['/api/team-members', currentUserId],
@@ -87,52 +137,32 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       return response.json();
     },
   });
-  
+
   // Format team members for display
   const teamMembers = teamMembersData.map((data: any) => {
-    const user = data.user;
+    const userData = data.user;
     return {
-      id: user.id,
-      name: user.firstName && user.lastName 
-        ? `${user.firstName} ${user.lastName}` 
-        : user.username,
+      id: userData.id,
+      name: userData.firstName && userData.lastName 
+        ? `${userData.firstName} ${userData.lastName}` 
+        : userData.username,
     };
   });
-  
-  // Set up the form
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: editingTask?.title || "",
-      description: editingTask?.description || "",
-      completed: editingTask?.completed || false,
-      projectId: editingTask?.projectId || null,
-      dueDate: editingTask?.dueDate || null,
-      priority: editingTask?.priority || "Medium",
-      starred: editingTask?.starred || false,
-      assignedTo: memberId || (editingTask?.assignedTo as number | undefined),
-    }
-  });
-  
+
   // Create new task mutation
   const createMutation = useMutation({
     mutationFn: async (newTask: FormValues) => {
-      // Include the date if set
       if (date) {
         newTask.dueDate = date as any;
       }
+
+      newTask.assignedBy = currentUserId;
       
-      // Add required fields
-      newTask.assignedBy = currentUserId; // Who assigned this task
-      newTask.userId = currentUserId; // Owner of the task (required field)
-      
-      // Use apiRequest from queryClient to make the request
-      const res = await apiRequest({
+      return await apiRequest({
         method: 'POST',
         url: '/api/tasks',
         data: newTask
       });
-      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -151,27 +181,25 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       });
     }
   });
-  
+
   // Update task mutation
   const updateMutation = useMutation({
     mutationFn: async (updatedTask: FormValues) => {
-      // Include the date if set
+      if (!editingTask) return null;
+
       if (date) {
         updatedTask.dueDate = date as any;
       }
-      
-      // If the task is being reassigned, update the assignedBy field
-      if (updatedTask.assignedTo !== editingTask?.assignedTo) {
+
+      if (updatedTask.assignedTo !== editingTask.assignedTo) {
         updatedTask.assignedBy = currentUserId;
       }
-      
-      // Use apiRequest from queryClient to make the request
-      const res = await apiRequest({
+
+      return await apiRequest({
         method: 'PATCH',
-        url: `/api/tasks/${editingTask!.id}`,
+        url: `/api/tasks/${editingTask.id}`,
         data: updatedTask
       });
-      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -190,7 +218,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       });
     }
   });
-  
+
   // Handle form submission
   const onSubmit = (values: FormValues) => {
     if (editingTask) {
@@ -199,14 +227,14 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       createMutation.mutate(values);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{editingTask ? "Edit Task" : "Assign New Task"}</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
             <FormField
@@ -222,7 +250,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -241,7 +269,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -251,7 +279,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                     <FormLabel>Priority</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || "Medium"}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -268,7 +296,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="projectId"
@@ -298,7 +326,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormItem className="flex flex-col gap-1">
                 <FormLabel>Due Date</FormLabel>
@@ -322,7 +350,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                   </PopoverContent>
                 </Popover>
               </FormItem>
-              
+
               <FormField
                 control={form.control}
                 name="assignedTo"
@@ -342,7 +370,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                         {isLoadingTeamMembers ? (
                           <SelectItem value="loading">Loading contacts...</SelectItem>
                         ) : teamMembers.length > 0 ? (
-                          teamMembers.map((member: any) => (
+                          teamMembers.map((member) => (
                             <SelectItem key={member.id} value={String(member.id)}>
                               {member.name}
                             </SelectItem>
@@ -357,7 +385,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 )}
               />
             </div>
-            
+
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

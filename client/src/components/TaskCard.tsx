@@ -2,7 +2,7 @@ import { Task, Project } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, MoreVertical, UserCircle } from "lucide-react";
+import { Star, MoreVertical, UserCircle, AlertTriangle, Flag } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -195,6 +195,37 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
     }
   };
   
+  const getPriorityBadge = () => {
+    const priority = task.priority?.toLowerCase() || 'medium';
+    
+    switch (priority) {
+      case 'high':
+        return {
+          className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+          icon: <AlertTriangle className="h-3 w-3 mr-1" />,
+          label: "High"
+        };
+      case 'medium':
+        return {
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Medium"
+        };
+      case 'low':
+        return {
+          className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Low"
+        };
+      default:
+        return {
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Medium"
+        };
+    }
+  };
+  
   return (
     <Card 
       className="border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
@@ -207,6 +238,16 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
             <Badge variant="outline" className={getBadgeStyles()}>
               {project?.name || "Task"}
             </Badge>
+            
+            {/* Priority Badge */}
+            {task.priority && (
+              <Badge variant="outline" className={getPriorityBadge().className}>
+                <span className="flex items-center">
+                  {getPriorityBadge().icon}
+                  {getPriorityBadge().label}
+                </span>
+              </Badge>
+            )}
             
             {task.assignedTo && (
               <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">

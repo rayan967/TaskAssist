@@ -7,16 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { Task, Project } from "@shared/schema";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { AddTaskModal } from "@/components/AddTaskModal";
+import { AssignTaskModal } from "@/components/AssignTaskModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Calendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  
+  // Get user info from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1;
   
   // Get tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
-    queryKey: ['/api/tasks'],
+    queryKey: [`/api/tasks?userId=${currentUserId}`],
   });
   
   const { data: projects = [] } = useQuery<Project[]>({
@@ -65,21 +72,37 @@ export default function Calendar() {
     setSelectedDate(day);
   };
   
+  // Determine if this is a task that was assigned to/by the current user
+  const isAssignedTask = (task: Task) => {
+    return task.assignedTo === currentUserId || task.assignedBy === currentUserId;
+  };
+  
+  // Determine if this is the user's own task (not assigned)
+  const isMyTask = (task: Task) => {
+    return task.userId === currentUserId && !task.assignedTo && !task.assignedBy;
+  };
+
   // Handle add task
   const handleAddTask = () => {
     setEditingTask(undefined);
     setShowAddTaskModal(true);
   };
   
-  // Handle edit task
+  // Handle edit task - chooses the correct modal based on task type
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
-    setShowAddTaskModal(true);
+    
+    if (isAssignedTask(task)) {
+      setShowAssignTaskModal(true);
+    } else {
+      setShowAddTaskModal(true);
+    }
   };
   
   // Close modal
   const handleCloseModal = () => {
     setShowAddTaskModal(false);
+    setShowAssignTaskModal(false);
     setEditingTask(undefined);
   };
   
@@ -277,6 +300,13 @@ export default function Calendar() {
       {/* Add/Edit Task Modal */}
       <AddTaskModal
         isOpen={showAddTaskModal}
+        onClose={handleCloseModal}
+        editingTask={editingTask}
+      />
+      
+      {/* Assign Task Modal */}
+      <AssignTaskModal
+        isOpen={showAssignTaskModal}
         onClose={handleCloseModal}
         editingTask={editingTask}
       />

@@ -28,7 +28,7 @@ export default function Dashboard({ path }: { path?: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-  
+
   // Extract project ID from path if available
   useEffect(() => {
     if (path && path.startsWith('/dashboard/')) {
@@ -40,15 +40,15 @@ export default function Dashboard({ path }: { path?: string }) {
   }, [path]);
   // To filter by assignment - added for showing only my tasks or assigned tasks
   const [assignmentFilter, setAssignmentFilter] = useState<string>("my");
-  
+
   // Sorting state
   const [sortBy, setSortBy] = useState<SortOption>("none");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  
+
   // Date filtering
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-  
+
   // Listen for custom events from sidebar
   useEffect(() => {
     // Handle project filtering from sidebar
@@ -56,28 +56,26 @@ export default function Dashboard({ path }: { path?: string }) {
       const { projectId } = event.detail;
       setSelectedProject(projectId.toString());
     };
-    
+
     // Handle opening add task modal from sidebar
     const handleOpenAddTaskModal = () => {
       setShowAddTaskModal(true);
     };
-    
+
     // Add event listeners
     window.addEventListener('filterByProject', handleFilterByProject as EventListener);
     window.addEventListener('openAddTaskModal', handleOpenAddTaskModal);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('filterByProject', handleFilterByProject as EventListener);
       window.removeEventListener('openAddTaskModal', handleOpenAddTaskModal);
     };
   }, []);
-  
+
   // Get current user from auth context
   const { user } = useAuth();
-  console.log(user)
   const currentUserId = user?.id || 1; // Default to 1 if not authenticated
-  console.log(currentUserId)
 
   // Fetch tasks - using the new API that returns tasks where user is creator, assignee, or assigner
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
@@ -90,17 +88,17 @@ export default function Dashboard({ path }: { path?: string }) {
       return response.json();
     },
   });
-  
+
   // Fetch projects
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
+
   // Fetch task summary
   const { data: taskSummary = { total: 0, completed: 0, pending: 0 } } = useQuery<TaskSummary>({
     queryKey: ['/api/tasks/summary'],
   });
-  
+
   // Filter and sort tasks
   const processedTasks = () => {
     // First filter
@@ -124,41 +122,41 @@ export default function Dashboard({ path }: { path?: string }) {
       // Filtering logic
       if (assignmentFilter === "my" && !isMyTask) return false;
       if (assignmentFilter === "assigned" && !isAssignedTask) return false;
-      
+
       // Filter by search query
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-      
+
       // Filter by project
       if (selectedProject && task.projectId !== parseInt(selectedProject)) {
         return false;
       }
-      
+
       // Filter by priority
       if (priorityFilter && task.priority !== priorityFilter) {
         return false;
       }
-      
+
       // Filter by date range
       if (dateRange.from && task.dueDate) {
         const taskDate = new Date(task.dueDate);
         if (taskDate < dateRange.from) return false;
       }
-      
+
       if (dateRange.to && task.dueDate) {
         const taskDate = new Date(task.dueDate);
         if (taskDate > dateRange.to) return false;
       }
-    
+
       return true;
     });
-    
+
     // Then sort
     if (sortBy !== "none") {
       result.sort((a, b) => {
         let comparison = 0;
-        
+
         switch (sortBy) {
           case "title":
             comparison = a.title.localeCompare(b.title);
@@ -176,16 +174,16 @@ export default function Dashboard({ path }: { path?: string }) {
             else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             break;
         }
-        
+
         return sortDirection === "asc" ? comparison : -comparison;
       });
     }
     return result;
   };
-  
+
   // Get filtered and sorted tasks
   const filteredTasks = processedTasks();
-  
+
   // Toggle sort direction
   const toggleSort = (option: SortOption) => {
     if (sortBy === option) {
@@ -195,7 +193,7 @@ export default function Dashboard({ path }: { path?: string }) {
       setSortDirection("asc");
     }
   };
-  
+
   // Reset all filters
   const resetFilters = () => {
     setActiveFilter("all");
@@ -206,12 +204,12 @@ export default function Dashboard({ path }: { path?: string }) {
     setSortBy("none");
     setAssignmentFilter("my");
   };
-  
+
   const handleAddTask = () => {
     setEditingTask(undefined);
     setShowAddTaskModal(true);
   };
-  
+
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowAddTaskModal(true);
@@ -221,30 +219,30 @@ export default function Dashboard({ path }: { path?: string }) {
     setEditingTask(task);
     setShowAssignTaskModal(true);
   };
-  
+
   const handleCloseModal = () => {
     setShowAddTaskModal(false);
     setShowAssignTaskModal(false);
     setEditingTask(undefined);
   };
-  
+
   const getProjectById = (projectId?: number | null) => {
     if (!projectId) return undefined;
     return projects.find((project: Project) => project.id === projectId);
   };
-  
+
   // Format date range for display
   const formatDateRange = () => {
     if (!dateRange.from && !dateRange.to) return "Select dates";
-    
+
     let result = "";
     if (dateRange.from) result += format(dateRange.from, "MMM d, yyyy");
     if (dateRange.from && dateRange.to) result += " - ";
     if (dateRange.to) result += format(dateRange.to, "MMM d, yyyy");
-    
+
     return result;
   };
-  
+
   return (
     <>
       {/* Main header */}
@@ -265,7 +263,7 @@ export default function Dashboard({ path }: { path?: string }) {
           changePercentage={8}
           changeText="vs last week"
         />
-        
+
         <StatusCard
           title="Completed"
           value={taskSummary.completed}
@@ -274,7 +272,7 @@ export default function Dashboard({ path }: { path?: string }) {
           changePercentage={12}
           changeText="vs last week"
         />
-        
+
         <StatusCard
           title="Pending"
           value={taskSummary.pending}
@@ -314,7 +312,7 @@ export default function Dashboard({ path }: { path?: string }) {
               Completed
             </Button>
           </div>
-          
+
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
             <Button
               variant={assignmentFilter === "my" ? "default" : "ghost"}
@@ -342,7 +340,7 @@ export default function Dashboard({ path }: { path?: string }) {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative w-60">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -353,7 +351,7 @@ export default function Dashboard({ path }: { path?: string }) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -369,7 +367,7 @@ export default function Dashboard({ path }: { path?: string }) {
             <PopoverContent className="w-[300px] p-4">
               <div className="space-y-4">
                 <h4 className="font-medium">Filter Tasks</h4>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Project</p>
                   <Select
@@ -389,7 +387,7 @@ export default function Dashboard({ path }: { path?: string }) {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Priority</p>
                   <Select
@@ -407,7 +405,7 @@ export default function Dashboard({ path }: { path?: string }) {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Due Date</p>
                   <Popover>
@@ -430,14 +428,14 @@ export default function Dashboard({ path }: { path?: string }) {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <Button onClick={resetFilters} variant="secondary" size="sm" className="w-full">
                   Reset Filters
                 </Button>
               </div>
             </PopoverContent>
           </Popover>
-          
+
           <Button variant="outline" onClick={() => setSortBy(sortBy === "none" ? "dueDate" : "none")} size="sm" className="flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4" />
             Sort
@@ -447,7 +445,7 @@ export default function Dashboard({ path }: { path?: string }) {
               </span>
             )}
           </Button>
-          
+
           {sortBy !== "none" && (
             <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden">
               <Button 
@@ -476,7 +474,7 @@ export default function Dashboard({ path }: { path?: string }) {
               </Button>
             </div>
           )}
-          
+
           <Button onClick={handleAddTask} className="ml-auto">
             <PlusIcon className="h-4 w-4 mr-2" />
             Add Task
@@ -537,7 +535,7 @@ export default function Dashboard({ path }: { path?: string }) {
         onClose={handleCloseModal}
         editingTask={editingTask}
       />
-      
+
       {/* Assign Task Modal */}
       <AssignTaskModal
         isOpen={showAssignTaskModal}
