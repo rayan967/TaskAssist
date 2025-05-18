@@ -456,8 +456,8 @@ export class MemStorage implements IStorage {
         dueDate: inThreeDays,
         priority: "medium",
         starred: false,
-        assignedTo: 3,
-        assignedBy: 3,
+        assignedTo: null,
+        assignedBy: null,
         userId: 3,
         teamId: null,
         createdAt: new Date(),
@@ -586,4 +586,4 @@ import { DatabaseStorage } from "./DatabaseStorage";
 // Use DatabaseStorage for production
 export const storage = process.env.NODE_ENV === "production" 
   ? new DatabaseStorage() 
-  : new MemStorage();
+  : new DatabaseStorage();

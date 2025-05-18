@@ -19,6 +19,7 @@ import { queryClient } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import {useAuth} from "@/contexts/AuthContext.tsx";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -37,6 +38,10 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -48,7 +53,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
       dueDate: undefined,
       completed: false,
       starred: false,
-      userId: 1, // Adding default userId which is required
+      userId: currentUserId, // Adding default userId which is required
     },
   });
   
@@ -63,7 +68,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
         dueDate: editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
         completed: editingTask.completed,
         starred: editingTask.starred,
-        userId: editingTask.userId || 1,
+        userId: editingTask.userId || currentUserId,
       });
     } else {
       form.reset({
@@ -74,7 +79,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
         dueDate: undefined,
         completed: false,
         starred: false,
-        userId: 1,
+        userId: currentUserId,
       });
     }
   }, [editingTask, form]);
@@ -141,7 +146,7 @@ export function AddTaskModal({ isOpen, onClose, editingTask }: AddTaskModalProps
     // Adding userId field which is required according to the schema
     const taskData = {
       ...values,
-      userId: 1, // Using a default user ID for now
+      userId: currentUserId, // Using a default user ID for now
     };
     
     if (editingTask) {

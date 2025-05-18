@@ -75,8 +75,10 @@ export default function Dashboard({ path }: { path?: string }) {
   
   // Get current user from auth context
   const { user } = useAuth();
+  console.log(user)
   const currentUserId = user?.id || 1; // Default to 1 if not authenticated
-  
+  console.log(currentUserId)
+
   // Fetch tasks - using the new API that returns tasks where user is creator, assignee, or assigner
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ['/api/tasks', { userId: currentUserId }],
@@ -106,10 +108,22 @@ export default function Dashboard({ path }: { path?: string }) {
       // Filter by status
       if (activeFilter === "active" && task.completed) return false;
       if (activeFilter === "completed" && !task.completed) return false;
-      
-      // Filter by assignment
-      if (assignmentFilter === "my" && task.assignedTo) return false;
-      if (assignmentFilter === "assigned" && !task.assignedTo) return false;
+
+      // currentUserId comes from auth context
+      const isMyTask = (
+          task.userId === currentUserId &&
+          !task.assignedTo &&
+          !task.assignedBy
+      );
+
+      const isAssignedTask = (
+          task.assignedTo === currentUserId ||
+          task.assignedBy === currentUserId
+      );
+
+      // Filtering logic
+      if (assignmentFilter === "my" && !isMyTask) return false;
+      if (assignmentFilter === "assigned" && !isAssignedTask) return false;
       
       // Filter by search query
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -166,7 +180,6 @@ export default function Dashboard({ path }: { path?: string }) {
         return sortDirection === "asc" ? comparison : -comparison;
       });
     }
-    
     return result;
   };
   

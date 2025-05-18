@@ -101,17 +101,26 @@ export const tasks = pgTable("tasks", {
   teamId: integer("team_id") // Optional team association 
 });
 
+const dateCoerce = z.preprocess(
+    (val) => (typeof val === "string" || val instanceof Date) ? new Date(val) : val,
+    z.date().optional()
+);
+
 export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
   createdAt: true,
   updatedAt: true
+}).extend({
+  dueDate: dateCoerce
 });
 
 export const updateTaskSchema = createInsertSchema(tasks).omit({
   id: true,
   createdAt: true,
   updatedAt: true
-}).partial();
+}).partial().extend({
+  dueDate: dateCoerce
+});
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type UpdateTask = z.infer<typeof updateTaskSchema>;

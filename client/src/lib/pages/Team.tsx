@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { AssignTaskModal } from "@/components/AssignTaskModal";
 import { AddTeamMemberModal } from "@/components/AddTeamMemberModal";
+import {useAuth} from "@/contexts/AuthContext.tsx";
 
 // We'll fetch team members from the API instead of using mock data
 
@@ -31,9 +32,10 @@ export default function Team() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-  
-  // Current user ID (would come from auth context in a real app)
-  const currentUserId = 1;
+
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
   
   // Fetch tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
@@ -597,7 +599,7 @@ export default function Team() {
       <AddTeamMemberModal
         isOpen={showAddMemberModal}
         onClose={handleCloseModal}
-        currentUserId={1} // Using the current user ID instead of team ID (would come from auth context in a real app)
+        currentUserId={currentUserId} // Using the current user ID instead of team ID (would come from auth context in a real app)
       />
     </>
   );

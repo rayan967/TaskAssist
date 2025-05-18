@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import {useAuth} from "@/contexts/AuthContext.tsx";
 
 // Schema for the form
 const formSchema = insertTaskSchema.extend({
@@ -70,9 +71,10 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
-  // Current user ID (would come from auth context in a real app)
-  const currentUserId = 1;
+
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
   
   // Fetch team members (connections)
   const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
@@ -121,8 +123,8 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       }
       
       // Add required fields
-      newTask.assignedBy = 1; // Who assigned this task
-      newTask.userId = 1; // Owner of the task (required field)
+      newTask.assignedBy = currentUserId; // Who assigned this task
+      newTask.userId = currentUserId; // Owner of the task (required field)
       
       // Use apiRequest from queryClient to make the request
       const res = await apiRequest({
@@ -160,7 +162,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       
       // If the task is being reassigned, update the assignedBy field
       if (updatedTask.assignedTo !== editingTask?.assignedTo) {
-        updatedTask.assignedBy = 1;
+        updatedTask.assignedBy = currentUserId;
       }
       
       // Use apiRequest from queryClient to make the request
