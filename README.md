@@ -4,6 +4,31 @@ A full-stack **to-do / team-task** platform powered by a **Spring Boot 3** API a
 
 ---
 
+## 📸 Demo Screenshots
+
+### Dashboard and Calendar
+
+<div style="display: flex; gap: 1rem;">
+  <div style="flex: 1; aspect-ratio: 16 / 9; overflow: hidden;">
+    <img src="./demos/Dashboard.png" alt="Dashboard" style="width: 100%; object-fit: cover;" />
+  </div>
+  <div style="flex: 1; aspect-ratio: 16 / 9; overflow: hidden;">
+    <img src="./demos/Calendar.png" alt="Calendar" style="width: 100%; object-fit: cover;" />
+  </div>
+</div>
+
+### Team Members and Member Details
+
+<div style="display: flex; gap: 1rem; margin-top: 1rem;">
+  <div style="flex: 1; aspect-ratio: 16 / 9; overflow: hidden;">
+    <img src="./demos/Team_members.png" alt="Team Members" style="width: 100%; object-fit: cover;" />
+  </div>
+  <div style="flex: 1; aspect-ratio: 16 / 9; overflow: hidden;">
+    <img src="./demos/Member_details.png" alt="Member Details" style="width: 100%; object-fit: cover;" />
+  </div>
+</div>
+
+---
 ## ✨ Features
 
 | Domain       | Highlights                                             |
