@@ -18,7 +18,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
-  
+
   // Initialize theme after component is mounted
   useEffect(() => {
     setMounted(true);
@@ -26,13 +26,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     setTheme(savedTheme || (systemPrefersDark ? "dark" : "light"));
   }, []);
-  
+
   useEffect(() => {
     if (!mounted) return;
 
     // Update the data-theme attribute on the document element
     const root = window.document.documentElement;
-    
+
     if (theme === "dark") {
       root.classList.add("dark");
       document.body.classList.add("dark");
@@ -40,26 +40,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.remove("dark");
       document.body.classList.remove("dark");
     }
-    
+
     // Save theme preference
     localStorage.setItem("theme", theme);
-    
+
     // Force repaint to apply theme changes
     document.body.style.backgroundColor = theme === "dark" ? "#111827" : "#f9fafb";
     setTimeout(() => {
       document.body.style.backgroundColor = "";
     }, 10);
-    
+
   }, [theme, mounted]);
-  
+
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
   };
-  
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
+      <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+        {children}
+      </ThemeContext.Provider>
   );
 }
 

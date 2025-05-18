@@ -1,9 +1,10 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertTaskSchema, updateTaskSchema, insertProjectSchema } from "@shared/schema";
+import { insertTaskSchema, updateTaskSchema, insertProjectSchema, insertUserSchema, loginUserSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { authenticate, generateToken, optionalAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -35,6 +36,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/tasks", async (req: Request, res: Response) => {
     try {
       const filter = req.query.filter as string | undefined;
+      const userId = req.query.userId as string | undefined;
+      
+      // If userId is provided, get tasks for that user (where user is creator, assignee, or assigner)
+      if (userId) {
+        const userIdNum = parseInt(userId);
+        if (isNaN(userIdNum)) {
+          return res.status(400).json({ message: "Invalid user ID" });
+        }
+        const tasks = await storage.getUserTasks(userIdNum, filter);
+        return res.json(tasks);
+      }
+      
+      // Otherwise get all tasks
       const tasks = await storage.getTasks(filter);
       res.json(tasks);
     } catch (error) {
@@ -117,6 +131,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search users
+  apiRouter.get("/users/search", async (req: Request, res: Response) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const users = await storage.searchUsers(query);
+      
+      // Log to help with debugging
+      console.log(`Searching for "${query}", found ${users.length} users`);
+      
+      res.json(users);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
   // GET all projects
   apiRouter.get("/projects", async (req: Request, res: Response) => {
     try {
@@ -158,7 +191,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(res, error);
     }
   });
+  
+  // Team member routes (Friend-list style)
+  
+  // GET team members (contacts)
+  apiRouter.get("/team-members/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const members = await storage.getTeamMembers(userId);
+      res.json(members);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Add team member (create connection between users)
+  apiRouter.post("/team-members", async (req: Request, res: Response) => {
+    try {
+      const { userId1, userId2 } = req.body;
+      
+      if (!userId1 || !userId2) {
+        return res.status(400).json({ message: "Both user IDs are required" });
+      }
+      
+      const newConnection = await storage.addTeamMember(userId1, userId2);
+      res.status(201).json(newConnection);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
 
+  // Authentication routes
+  // Register endpoint
+  apiRouter.post("/auth/register", async (req: Request, res: Response) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Create new user
+      const user = await storage.createUser(userData);
+      
+      // Generate token
+      const token = generateToken(user.id);
+      
+      // Return user info and token
+      return res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          profileImageUrl: user.profileImageUrl,
+          isActive: user.isActive
+        },
+        token
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Login endpoint
+  apiRouter.post("/auth/login", async (req: Request, res: Response) => {
+    try {
+      const loginData = loginUserSchema.parse(req.body);
+      
+      // Verify credentials
+      const user = await (storage as any).verifyUser(loginData.username, loginData.password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Generate token
+      const token = generateToken(user.id);
+      
+      // Return user info and token
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          profileImageUrl: user.profileImageUrl,
+          isActive: user.isActive
+        },
+        token
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Get current user info
+  apiRouter.get("/auth/me", authenticate, (req: Request, res: Response) => {
+    const user = (req as any).user;
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      profileImageUrl: user.profileImageUrl,
+      isActive: user.isActive
+    });
+  });
+  
+  // Add optional authentication to all other routes to identify the user if token is provided
+  apiRouter.use(optionalAuth);
+  
   // Register API routes with /api prefix
   app.use("/api", apiRouter);
 

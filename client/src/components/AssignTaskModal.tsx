@@ -29,10 +29,12 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext.tsx";
 
 // Schema for the form
 const formSchema = insertTaskSchema.extend({
   assignedTo: z.number().optional(),
+  userId: z.number().default(1),
 });
 
 // Type for the form values
@@ -45,93 +47,122 @@ interface AssignTaskModalProps {
   editingTask?: Task;
 }
 
-// Mock team members (in a real app, this would come from the API)
-const teamMembers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    role: "Project Manager",
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    role: "UI/UX Designer",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    role: "Developer",
-  },
-  {
-    id: 4,
-    name: "Jessica Lee",
-    role: "QA Engineer",
-  },
-  {
-    id: 5,
-    name: "David Kim",
-    role: "Backend Developer",
-  }
-];
-
 export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: AssignTaskModalProps) {
-  // Use useEffect to ensure date is set when the component is rendered with editingTask
   const [date, setDate] = useState<Date | undefined>(
     editingTask?.dueDate ? new Date(editingTask.dueDate as any) : undefined
   );
-  
-  // Update the date when editingTask changes
-  useEffect(() => {
-    if (editingTask?.dueDate) {
-      setDate(new Date(editingTask.dueDate as any));
-    } else {
-      setDate(undefined);
-    }
-  }, [editingTask]);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Get projects for the dropdown
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-  });
-  
-  // Set up the form
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1;
+
+  // Helper function to format priority consistently
+  const formatPriority = (priority?: string | null): "Low" | "Medium" | "High" => {
+    if (!priority) return "Medium";
+    const lowerPriority = priority.toLowerCase();
+    if (lowerPriority === "low") return "Low";
+    if (lowerPriority === "medium") return "Medium";
+    if (lowerPriority === "high") return "High";
+    return "Medium";
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: editingTask?.title || "",
-      description: editingTask?.description || "",
-      completed: editingTask?.completed || false,
-      projectId: editingTask?.projectId || null,
-      dueDate: editingTask?.dueDate || null,
-      priority: editingTask?.priority || "Medium",
-      starred: editingTask?.starred || false,
-      assignedTo: memberId || (editingTask?.assignedTo as number | undefined),
+      title: "",
+      description: "",
+      projectId: null,
+      priority: "Medium",
+      completed: false,
+      starred: false,
+      assignedTo: memberId,
+      userId: currentUserId,
     }
   });
-  
+
+  // Update form when editingTask changes
+  useEffect(() => {
+    if (editingTask) {
+      const priority = formatPriority(editingTask.priority);
+      
+      if (editingTask.dueDate) {
+        setDate(new Date(editingTask.dueDate as any));
+      }
+      
+      form.reset({
+        title: editingTask.title,
+        description: editingTask.description || "",
+        projectId: editingTask.projectId || null,
+        priority: priority,
+        completed: editingTask.completed || false,
+        starred: editingTask.starred || false,
+        assignedTo: editingTask.assignedTo as number | undefined || memberId,
+        userId: editingTask.userId || currentUserId,
+      });
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        projectId: null,
+        priority: "Medium",
+        completed: false,
+        starred: false,
+        assignedTo: memberId,
+        userId: currentUserId,
+      });
+    }
+  }, [editingTask, form, memberId, currentUserId]);
+
+  // Ensure memberId is set in the form if provided
+  useEffect(() => {
+    if (memberId) {
+      form.setValue('assignedTo', memberId);
+    }
+  }, [memberId, form]);
+
+  // Fetch projects for the dropdown
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+  });
+
+  // Fetch team members (connections)
+  const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+
+  // Format team members for display
+  const teamMembers = teamMembersData.map((data: any) => {
+    const userData = data.user;
+    return {
+      id: userData.id,
+      name: userData.firstName && userData.lastName 
+        ? `${userData.firstName} ${userData.lastName}` 
+        : userData.username,
+    };
+  });
+
   // Create new task mutation
   const createMutation = useMutation({
     mutationFn: async (newTask: FormValues) => {
-      // Include the date if set
       if (date) {
         newTask.dueDate = date as any;
       }
+
+      newTask.assignedBy = currentUserId;
       
-      // Use apiRequest with correct parameters
-      const response = await fetch('/api/tasks', {
+      return await apiRequest({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask)
+        url: '/api/tasks',
+        data: newTask
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-      
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -150,27 +181,25 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       });
     }
   });
-  
+
   // Update task mutation
   const updateMutation = useMutation({
     mutationFn: async (updatedTask: FormValues) => {
-      // Include the date if set
+      if (!editingTask) return null;
+
       if (date) {
         updatedTask.dueDate = date as any;
       }
-      
-      // Use fetch to make the PATCH request
-      const response = await fetch(`/api/tasks/${editingTask!.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update task');
+
+      if (updatedTask.assignedTo !== editingTask.assignedTo) {
+        updatedTask.assignedBy = currentUserId;
       }
-      
-      return await response.json();
+
+      return await apiRequest({
+        method: 'PATCH',
+        url: `/api/tasks/${editingTask.id}`,
+        data: updatedTask
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -189,7 +218,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       });
     }
   });
-  
+
   // Handle form submission
   const onSubmit = (values: FormValues) => {
     if (editingTask) {
@@ -198,14 +227,14 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
       createMutation.mutate(values);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{editingTask ? "Edit Task" : "Assign New Task"}</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
             <FormField
@@ -221,7 +250,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -240,7 +269,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -250,7 +279,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                     <FormLabel>Priority</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || "Medium"}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -267,7 +296,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="projectId"
@@ -297,7 +326,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormItem className="flex flex-col gap-1">
                 <FormLabel>Due Date</FormLabel>
@@ -321,7 +350,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                   </PopoverContent>
                 </Popover>
               </FormItem>
-              
+
               <FormField
                 control={form.control}
                 name="assignedTo"
@@ -338,11 +367,17 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={String(member.id)}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
+                        {isLoadingTeamMembers ? (
+                          <SelectItem value="loading">Loading contacts...</SelectItem>
+                        ) : teamMembers.length > 0 ? (
+                          teamMembers.map((member) => (
+                            <SelectItem key={member.id} value={String(member.id)}>
+                              {member.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none">No contacts found</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -350,7 +385,7 @@ export function AssignTaskModal({ isOpen, onClose, memberId, editingTask }: Assi
                 )}
               />
             </div>
-            
+
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

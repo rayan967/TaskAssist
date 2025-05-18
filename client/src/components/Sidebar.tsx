@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Project } from "@shared/schema";
+import { Project, Task } from "@shared/schema";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,6 +16,16 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  // Fetch tasks to calculate project task counts
+  const { data: tasks = [] } = useQuery<Task[]>({
+    queryKey: ['/api/tasks'],
+  });
+  
+  // Calculate task count per project
+  const getProjectTaskCount = (projectId: number) => {
+    return tasks.filter(task => task.projectId === projectId).length;
+  };
 
   return (
     <aside 
@@ -73,9 +83,9 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Projects</p>
           <nav className="space-y-1">
             {projects.map((project: Project) => (
-              <a 
+              <Link 
                 key={project.id}
-                href="#" 
+                href={`/dashboard/${project.id}`}
                 className="flex items-center justify-between px-4 py-2.5 text-sm rounded-lg text-gray-700 hover:bg-gray-100 font-medium dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <span className="flex items-center min-w-0">
@@ -86,18 +96,25 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   <span className="truncate">{project.name}</span>
                 </span>
                 <span className="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full dark:bg-gray-700 dark:text-gray-300 shrink-0 ml-2">
-                  {/* Task count would be dynamically generated in a real implementation */}
-                  {project.id === 1 ? 12 : project.id === 2 ? 8 : 3}
+                  {getProjectTaskCount(project.id)}
                 </span>
-              </a>
+              </Link>
             ))}
           </nav>
         </div>
 
         <div className="pt-4">
-          <Button className="w-full">
+          <Button 
+            className="w-full"
+            onClick={() => {
+              // Navigate to dashboard and trigger task creation modal
+              window.history.pushState({}, "", "/dashboard");
+              // Using a custom event to trigger the Add Task modal in Dashboard
+              window.dispatchEvent(new CustomEvent('openAddTaskModal'));
+            }}
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
-            New Project
+            New Task
           </Button>
         </div>
       </div>

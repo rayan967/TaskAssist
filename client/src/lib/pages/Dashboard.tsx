@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { StatusCard } from "@/components/StatusCard";
 import { TaskCard } from "@/components/TaskCard";
 import { AddTaskModal } from "@/components/AddTaskModal";
@@ -20,39 +21,84 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 type SortOption = "title" | "dueDate" | "priority" | "none";
 type SortDirection = "asc" | "desc";
 
-export default function Dashboard() {
+export default function Dashboard({ path }: { path?: string }) {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [showAssignTaskModal, setShowAssignTaskModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+
+  // Extract project ID from path if available
+  useEffect(() => {
+    if (path && path.startsWith('/dashboard/')) {
+      const projectId = path.split('/').pop();
+      if (projectId && !isNaN(parseInt(projectId))) {
+        setSelectedProject(projectId);
+      }
+    }
+  }, [path]);
   // To filter by assignment - added for showing only my tasks or assigned tasks
   const [assignmentFilter, setAssignmentFilter] = useState<string>("my");
-  
+
   // Sorting state
   const [sortBy, setSortBy] = useState<SortOption>("none");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  
+
   // Date filtering
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined });
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-  
-  // Fetch tasks
+
+  // Listen for custom events from sidebar
+  useEffect(() => {
+    // Handle project filtering from sidebar
+    const handleFilterByProject = (event: CustomEvent) => {
+      const { projectId } = event.detail;
+      setSelectedProject(projectId.toString());
+    };
+
+    // Handle opening add task modal from sidebar
+    const handleOpenAddTaskModal = () => {
+      setShowAddTaskModal(true);
+    };
+
+    // Add event listeners
+    window.addEventListener('filterByProject', handleFilterByProject as EventListener);
+    window.addEventListener('openAddTaskModal', handleOpenAddTaskModal);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('filterByProject', handleFilterByProject as EventListener);
+      window.removeEventListener('openAddTaskModal', handleOpenAddTaskModal);
+    };
+  }, []);
+
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
+
+  // Fetch tasks - using the new API that returns tasks where user is creator, assignee, or assigner
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ['/api/tasks'],
+    queryKey: ['/api/tasks', { userId: currentUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/tasks?userId=${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      return response.json();
+    },
   });
-  
+
   // Fetch projects
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
+
   // Fetch task summary
   const { data: taskSummary = { total: 0, completed: 0, pending: 0 } } = useQuery<TaskSummary>({
     queryKey: ['/api/tasks/summary'],
   });
-  
+
   // Filter and sort tasks
   const processedTasks = () => {
     // First filter
@@ -60,45 +106,57 @@ export default function Dashboard() {
       // Filter by status
       if (activeFilter === "active" && task.completed) return false;
       if (activeFilter === "completed" && !task.completed) return false;
-      
-      // Filter by assignment
-      if (assignmentFilter === "my" && task.assignedTo) return false;
-      if (assignmentFilter === "assigned" && !task.assignedTo) return false;
-      
+
+      // currentUserId comes from auth context
+      const isMyTask = (
+          task.userId === currentUserId &&
+          !task.assignedTo &&
+          !task.assignedBy
+      );
+
+      const isAssignedTask = (
+          task.assignedTo === currentUserId ||
+          task.assignedBy === currentUserId
+      );
+
+      // Filtering logic
+      if (assignmentFilter === "my" && !isMyTask) return false;
+      if (assignmentFilter === "assigned" && !isAssignedTask) return false;
+
       // Filter by search query
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-      
+
       // Filter by project
       if (selectedProject && task.projectId !== parseInt(selectedProject)) {
         return false;
       }
-      
+
       // Filter by priority
       if (priorityFilter && task.priority !== priorityFilter) {
         return false;
       }
-      
+
       // Filter by date range
       if (dateRange.from && task.dueDate) {
         const taskDate = new Date(task.dueDate);
         if (taskDate < dateRange.from) return false;
       }
-      
+
       if (dateRange.to && task.dueDate) {
         const taskDate = new Date(task.dueDate);
         if (taskDate > dateRange.to) return false;
       }
-    
+
       return true;
     });
-    
+
     // Then sort
     if (sortBy !== "none") {
       result.sort((a, b) => {
         let comparison = 0;
-        
+
         switch (sortBy) {
           case "title":
             comparison = a.title.localeCompare(b.title);
@@ -116,17 +174,16 @@ export default function Dashboard() {
             else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             break;
         }
-        
+
         return sortDirection === "asc" ? comparison : -comparison;
       });
     }
-    
     return result;
   };
-  
+
   // Get filtered and sorted tasks
   const filteredTasks = processedTasks();
-  
+
   // Toggle sort direction
   const toggleSort = (option: SortOption) => {
     if (sortBy === option) {
@@ -136,7 +193,7 @@ export default function Dashboard() {
       setSortDirection("asc");
     }
   };
-  
+
   // Reset all filters
   const resetFilters = () => {
     setActiveFilter("all");
@@ -147,12 +204,12 @@ export default function Dashboard() {
     setSortBy("none");
     setAssignmentFilter("my");
   };
-  
+
   const handleAddTask = () => {
     setEditingTask(undefined);
     setShowAddTaskModal(true);
   };
-  
+
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowAddTaskModal(true);
@@ -162,30 +219,30 @@ export default function Dashboard() {
     setEditingTask(task);
     setShowAssignTaskModal(true);
   };
-  
+
   const handleCloseModal = () => {
     setShowAddTaskModal(false);
     setShowAssignTaskModal(false);
     setEditingTask(undefined);
   };
-  
+
   const getProjectById = (projectId?: number | null) => {
     if (!projectId) return undefined;
     return projects.find((project: Project) => project.id === projectId);
   };
-  
+
   // Format date range for display
   const formatDateRange = () => {
     if (!dateRange.from && !dateRange.to) return "Select dates";
-    
+
     let result = "";
     if (dateRange.from) result += format(dateRange.from, "MMM d, yyyy");
     if (dateRange.from && dateRange.to) result += " - ";
     if (dateRange.to) result += format(dateRange.to, "MMM d, yyyy");
-    
+
     return result;
   };
-  
+
   return (
     <>
       {/* Main header */}
@@ -206,7 +263,7 @@ export default function Dashboard() {
           changePercentage={8}
           changeText="vs last week"
         />
-        
+
         <StatusCard
           title="Completed"
           value={taskSummary.completed}
@@ -215,7 +272,7 @@ export default function Dashboard() {
           changePercentage={12}
           changeText="vs last week"
         />
-        
+
         <StatusCard
           title="Pending"
           value={taskSummary.pending}
@@ -255,7 +312,7 @@ export default function Dashboard() {
               Completed
             </Button>
           </div>
-          
+
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg dark:bg-gray-700">
             <Button
               variant={assignmentFilter === "my" ? "default" : "ghost"}
@@ -283,7 +340,7 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative w-60">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -294,7 +351,7 @@ export default function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -310,7 +367,7 @@ export default function Dashboard() {
             <PopoverContent className="w-[300px] p-4">
               <div className="space-y-4">
                 <h4 className="font-medium">Filter Tasks</h4>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Project</p>
                   <Select
@@ -330,7 +387,7 @@ export default function Dashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Priority</p>
                   <Select
@@ -348,7 +405,7 @@ export default function Dashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Due Date</p>
                   <Popover>
@@ -371,14 +428,14 @@ export default function Dashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <Button onClick={resetFilters} variant="secondary" size="sm" className="w-full">
                   Reset Filters
                 </Button>
               </div>
             </PopoverContent>
           </Popover>
-          
+
           <Button variant="outline" onClick={() => setSortBy(sortBy === "none" ? "dueDate" : "none")} size="sm" className="flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4" />
             Sort
@@ -388,7 +445,7 @@ export default function Dashboard() {
               </span>
             )}
           </Button>
-          
+
           {sortBy !== "none" && (
             <div className="flex bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden">
               <Button 
@@ -417,7 +474,7 @@ export default function Dashboard() {
               </Button>
             </div>
           )}
-          
+
           <Button onClick={handleAddTask} className="ml-auto">
             <PlusIcon className="h-4 w-4 mr-2" />
             Add Task
@@ -478,7 +535,7 @@ export default function Dashboard() {
         onClose={handleCloseModal}
         editingTask={editingTask}
       />
-      
+
       {/* Assign Task Modal */}
       <AssignTaskModal
         isOpen={showAssignTaskModal}

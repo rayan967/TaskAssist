@@ -21,89 +21,71 @@ import { User as UserType, Task, Project } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { AddTaskModal } from "@/components/AddTaskModal";
 import { AssignTaskModal } from "@/components/AssignTaskModal";
+import { AddTeamMemberModal } from "@/components/AddTeamMemberModal";
+import {useAuth} from "@/contexts/AuthContext.tsx";
 
-// Mock team members (in a real app this would be fetched from the backend)
-const teamMembers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    role: "Project Manager",
-    email: "alex@example.com",
-    avatar: "",
-    tasksCompleted: 24,
-    tasksAssigned: 32,
-    phone: "(555) 123-4567",
-    availability: "Available",
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    role: "UI/UX Designer",
-    email: "sarah@example.com",
-    avatar: "",
-    tasksCompleted: 18,
-    tasksAssigned: 23,
-    phone: "(555) 234-5678",
-    availability: "In a meeting",
-  },
-  {
-    id: 3,
-    name: "Michael Chen",
-    role: "Developer",
-    email: "michael@example.com",
-    avatar: "",
-    tasksCompleted: 45,
-    tasksAssigned: 50,
-    phone: "(555) 345-6789",
-    availability: "Away",
-  },
-  {
-    id: 4,
-    name: "Jessica Lee",
-    role: "QA Engineer",
-    email: "jessica@example.com",
-    avatar: "",
-    tasksCompleted: 31,
-    tasksAssigned: 38,
-    phone: "(555) 456-7890",
-    availability: "Available",
-  },
-  {
-    id: 5,
-    name: "David Kim",
-    role: "Backend Developer",
-    email: "david@example.com",
-    avatar: "",
-    tasksCompleted: 27,
-    tasksAssigned: 35,
-    phone: "(555) 567-8901",
-    availability: "Do not disturb",
-  }
-];
+// We'll fetch team members from the API instead of using mock data
 
 export default function Team() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedMember, setSelectedMember] = useState<number | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-  
+
+  // Get current user from auth context
+  const { user } = useAuth();
+  const currentUserId = user?.id || 1; // Default to 1 if not authenticated
+
   // Fetch tasks and projects data
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
-  
+
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
+
+  // Fetch team members (connections)
+  const { data: teamMembersData = [], isLoading: isLoadingTeamMembers } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+
+  // Format team members for display
+  const teamMembers = teamMembersData.map((data: any) => {
+    const user = data.user;
+    return {
+      id: user.id,
+      name: user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.username,
+      email: user.email || user.username,
+      profileImageUrl: user.profileImageUrl,
+      // Calculate task stats
+      tasksCompleted: tasks.filter(task => 
+        task.assignedTo === user.id && task.completed).length,
+      tasksAssigned: tasks.filter(task => 
+        task.assignedTo === user.id).length,
+      // Default availability status
+      availability: user.isActive ? "Available" : "Away",
+    };
+  });
+
   // Get tasks stats
   const getTaskStats = () => {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.completed).length;
     const pendingTasks = totalTasks - completedTasks;
-    
+
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    
+
     return {
       total: totalTasks,
       completed: completedTasks,
@@ -111,14 +93,14 @@ export default function Team() {
       completionRate: Math.round(completionRate)
     };
   };
-  
+
   // Get project stats
   const getProjectStats = () => {
     return projects.map(project => {
       const projectTasks = tasks.filter(task => task.projectId === project.id);
       const totalTasks = projectTasks.length;
       const completedTasks = projectTasks.filter(task => task.completed).length;
-      
+
       return {
         ...project,
         totalTasks,
@@ -127,45 +109,51 @@ export default function Team() {
       };
     });
   };
-  
+
   const taskStats = getTaskStats();
   const projectStats = getProjectStats();
-  
+
   // Get member by id
   const getMemberById = (id: number) => {
-    return teamMembers.find(member => member.id === id);
+    return teamMembers.find((member: any) => member.id === id);
   };
-  
+
   // Get tasks assigned to member
   const getTasksForMember = (memberId: number) => {
     return tasks.filter(task => task.assignedTo === memberId);
   };
-  
+
   // Handle view member details
   const handleViewMember = (id: number) => {
     setSelectedMember(id);
     setActiveTab("details");
   };
-  
+
   // Handle assign task
   const handleAssignTask = (memberId?: number) => {
     setEditingTask(undefined);
     setSelectedMember(memberId || null);
     setShowTaskModal(true);
   };
-  
+
   // Handle edit task
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowTaskModal(true);
   };
-  
-  // Close modal
+
+  // Close modals
   const handleCloseModal = () => {
     setShowTaskModal(false);
+    setShowAddMemberModal(false);
     setEditingTask(undefined);
   };
-  
+
+  // Handle adding a new team member
+  const handleAddMember = () => {
+    setShowAddMemberModal(true);
+  };
+
   return (
     <>
       <div className="mb-8 mt-6">
@@ -174,7 +162,7 @@ export default function Team() {
           Manage your team and track progress on tasks and projects
         </p>
       </div>
-      
+
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -183,7 +171,7 @@ export default function Team() {
             Member Details
           </TabsTrigger>
         </TabsList>
-        
+
         {/* Overview Tab */}
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -200,7 +188,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -219,7 +207,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -234,7 +222,7 @@ export default function Team() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -268,7 +256,7 @@ export default function Team() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Team Members</CardTitle>
@@ -314,15 +302,15 @@ export default function Team() {
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Team Members Tab */}
         <TabsContent value="members">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Team Members</CardTitle>
-              <Button size="sm">
+              <CardTitle>Team List</CardTitle>
+              <Button size="sm" onClick={handleAddMember}>
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Add Member
+                Add Contact
               </Button>
             </CardHeader>
             <CardContent>
@@ -339,20 +327,14 @@ export default function Team() {
                           <AvatarFallback className="text-xl">{member.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <h3 className="font-bold text-lg mb-1">{member.name}</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-3">{member.role}</p>
+                        <p className="text-gray-500 dark:text-gray-400 mb-3">{member.email}</p>
                         <Badge 
-                          variant={
-                            member.availability === "Available" 
-                              ? "default" 
-                              : member.availability === "Away" || member.availability === "In a meeting"
-                                ? "secondary"
-                                : "outline"
-                          }
+                          variant={member.availability === "Available" ? "default" : "secondary"}
                           className="mb-4"
                         >
                           {member.availability}
                         </Badge>
-                        
+
                         <div className="w-full space-y-2 mb-4">
                           <div className="flex justify-between text-sm">
                             <span>Tasks Progress</span>
@@ -363,7 +345,7 @@ export default function Team() {
                             className="h-2"
                           />
                         </div>
-                        
+
                         <Button variant="outline" className="w-full" onClick={() => handleViewMember(member.id)}>
                           View Profile
                         </Button>
@@ -375,7 +357,7 @@ export default function Team() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Member Details Tab */}
         <TabsContent value="details">
           {selectedMember && (
@@ -389,33 +371,32 @@ export default function Team() {
                       </AvatarFallback>
                     </Avatar>
                     <h3 className="font-bold text-xl mb-1">{getMemberById(selectedMember)?.name}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">{getMemberById(selectedMember)?.role}</p>
-                    
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">{getMemberById(selectedMember)?.email}</p>
+
                     <Badge 
-                      variant={
-                        getMemberById(selectedMember)?.availability === "Available" 
-                          ? "default" 
-                          : getMemberById(selectedMember)?.availability === "Away" || getMemberById(selectedMember)?.availability === "In a meeting"
-                            ? "secondary"
-                            : "outline"
-                      }
+                      variant={getMemberById(selectedMember)?.availability === "Available" 
+                        ? "default" : "secondary"}
                       className="mb-6"
                     >
                       {getMemberById(selectedMember)?.availability}
                     </Badge>
-                    
+
                     <div className="w-full space-y-4">
                       <div className="flex items-center text-sm space-x-2">
                         <Mail className="h-4 w-4 text-gray-500" />
                         <span>{getMemberById(selectedMember)?.email}</span>
                       </div>
-                      
-                      <div className="flex items-center text-sm space-x-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span>{getMemberById(selectedMember)?.phone}</span>
-                      </div>
-                      
-                      <Button className="w-full">
+
+                      <Button 
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click event
+                          const email = getMemberById(selectedMember)?.email;
+                          if (email) {
+                            window.location.href = `mailto:${email}`;
+                          }
+                        }}
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Send Message
                       </Button>
@@ -423,7 +404,7 @@ export default function Team() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -450,7 +431,7 @@ export default function Team() {
                           className="h-2"
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="p-4">
@@ -460,7 +441,7 @@ export default function Team() {
                             </div>
                           </CardContent>
                         </Card>
-                        
+
                         <Card>
                           <CardContent className="p-4">
                             <div className="flex flex-col items-center">
@@ -473,7 +454,7 @@ export default function Team() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Assigned Tasks</CardTitle>
@@ -486,7 +467,7 @@ export default function Team() {
                       <div className="space-y-3">
                         {getTasksForMember(selectedMember).map(task => {
                           const project = projects.find(p => p.id === task.projectId);
-                          
+
                           return (
                             <div
                               key={task.id}
@@ -522,14 +503,14 @@ export default function Team() {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex items-center gap-2">
                                 {task.dueDate && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
                                     Due {new Date(task.dueDate as any).toLocaleDateString()}
                                   </span>
                                 )}
-                                
+
                                 {task.priority && (
                                   <Badge
                                     variant={
@@ -570,7 +551,7 @@ export default function Team() {
                     )}
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
@@ -586,7 +567,7 @@ export default function Team() {
                           <p className="text-sm text-gray-500">2 hours ago</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start space-x-3">
                         <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
                           <Calendar className="h-5 w-5 text-primary-500" />
@@ -596,7 +577,7 @@ export default function Team() {
                           <p className="text-sm text-gray-500">Yesterday at 3:30 PM</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start space-x-3">
                         <div className="bg-primary-50 dark:bg-primary-900/20 p-2 rounded-full">
                           <MessageSquare className="h-5 w-5 text-primary-500" />
@@ -614,13 +595,20 @@ export default function Team() {
           )}
         </TabsContent>
       </Tabs>
-      
+
       {/* Task assignment modal */}
       <AssignTaskModal
         isOpen={showTaskModal}
         onClose={handleCloseModal}
         memberId={selectedMember || undefined}
         editingTask={editingTask}
+      />
+
+      {/* Add team member modal */}
+      <AddTeamMemberModal
+        isOpen={showAddMemberModal}
+        onClose={handleCloseModal}
+        currentUserId={currentUserId} // Using the current user ID instead of team ID (would come from auth context in a real app)
       />
     </>
   );

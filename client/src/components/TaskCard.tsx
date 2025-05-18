@@ -1,8 +1,8 @@
 import { Task, Project } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, MoreVertical, UserCircle } from "lucide-react";
+import { Star, MoreVertical, UserCircle, AlertTriangle, Flag } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -13,17 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-
-// Hardcoded team members (in a real app, this would come from the API)
-const teamMembers = [
-  { id: 1, name: "John Smith", role: "Product Manager" },
-  { id: 2, name: "Emily Johnson", role: "UX Designer" },
-  { id: 3, name: "David Lee", role: "Developer" },
-  { id: 4, name: "Lisa Chen", role: "Marketing Specialist" }
-];
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TaskCardProps {
   task: Task;
@@ -33,9 +26,60 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProps) {
-  // Find the assignee if task is assigned
-  const assignee = task.assignedTo ? teamMembers.find(member => member.id === task.assignedTo) : null;
+  const { user } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
+  const [assignee, setAssignee] = useState<any>(null);
+  const [assigner, setAssigner] = useState<any>(null);
+  
+  // Fetch all team members for the current user
+  const currentUserId = user?.id || 1;
+  const { data: teamMembersData = [] } = useQuery({
+    queryKey: ['/api/team-members', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members/${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+      return response.json();
+    },
+  });
+  
+  // Create a map of user IDs to user objects from team members data
+  const userMap = new Map();
+  
+  useEffect(() => {
+    // Add the current user to the map
+    if (user) {
+      userMap.set(user.id, {
+        id: user.id,
+        name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username
+      });
+    }
+    
+    // Add all team members to the map
+    if (teamMembersData && teamMembersData.length > 0) {
+      teamMembersData.forEach((member: any) => {
+        if (member.user) {
+          const userData = member.user;
+          userMap.set(userData.id, {
+            id: userData.id,
+            name: userData.firstName && userData.lastName 
+              ? `${userData.firstName} ${userData.lastName}` 
+              : userData.username
+          });
+        }
+      });
+    }
+    
+    // Set assignee and assigner based on the map
+    if (task.assignedTo) {
+      setAssignee(userMap.get(task.assignedTo) || { id: task.assignedTo, name: `User #${task.assignedTo}` });
+    }
+    
+    if (task.assignedBy) {
+      setAssigner(userMap.get(task.assignedBy) || { id: task.assignedBy, name: `User #${task.assignedBy}` });
+    }
+  }, [task, teamMembersData, user]);
   
   const getTimeLabel = () => {
     if (!task.dueDate) return null;
@@ -66,8 +110,17 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
   
   const updateTaskMutation = useMutation({
     mutationFn: async (updatedTask: Partial<Task>) => {
-      const res = await apiRequest('PATCH', `/api/tasks/${task.id}`, updatedTask);
-      return res.json();
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTask)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -88,7 +141,13 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
   
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('DELETE', `/api/tasks/${task.id}`);
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
@@ -136,6 +195,37 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
     }
   };
   
+  const getPriorityBadge = () => {
+    const priority = task.priority?.toLowerCase() || 'medium';
+    
+    switch (priority) {
+      case 'high':
+        return {
+          className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+          icon: <AlertTriangle className="h-3 w-3 mr-1" />,
+          label: "High"
+        };
+      case 'medium':
+        return {
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Medium"
+        };
+      case 'low':
+        return {
+          className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Low"
+        };
+      default:
+        return {
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+          icon: <Flag className="h-3 w-3 mr-1" />,
+          label: "Medium"
+        };
+    }
+  };
+  
   return (
     <Card 
       className="border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md"
@@ -149,11 +239,30 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
               {project?.name || "Task"}
             </Badge>
             
+            {/* Priority Badge */}
+            {task.priority && (
+              <Badge variant="outline" className={getPriorityBadge().className}>
+                <span className="flex items-center">
+                  {getPriorityBadge().icon}
+                  {getPriorityBadge().label}
+                </span>
+              </Badge>
+            )}
+            
             {task.assignedTo && (
               <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                 <span className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3" />
                   Assigned to {assignee?.name || `Member #${task.assignedTo}`}
+                </span>
+              </Badge>
+            )}
+            
+            {task.assignedBy && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="flex items-center gap-1">
+                  <UserCircle className="h-3 w-3" />
+                  Assigned by {assigner?.name || `Member #${task.assignedBy}`}
                 </span>
               </Badge>
             )}
