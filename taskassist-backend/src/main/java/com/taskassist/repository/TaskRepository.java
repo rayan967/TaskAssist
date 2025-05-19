@@ -17,7 +17,8 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     
     List<Task> findByTeamId(Integer teamId);
     
-    @Query("SELECT t FROM Task t WHERE t.userId = :userId AND " +
+    @Query("SELECT t FROM Task t WHERE " +
+           "(t.userId = :userId OR t.assignedTo = :userId OR t.assignedBy = :userId) AND " +
            "(:filter IS NULL OR " +
            "(:filter = 'completed' AND t.completed = true) OR " +
            "(:filter = 'pending' AND t.completed = false) OR " +

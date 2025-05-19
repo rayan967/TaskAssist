@@ -14,9 +14,10 @@ public interface TeamRepository extends JpaRepository<Team, Integer> {
     @Query("SELECT t FROM Team t WHERE (t.userId1 = :userId1 AND t.userId2 = :userId2) OR (t.userId1 = :userId2 AND t.userId2 = :userId1)")
     Optional<Team> findTeamConnection(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
     
-    @Query("SELECT u FROM User u WHERE u.id IN " +
-           "(SELECT t.userId2 FROM Team t WHERE t.userId1 = :userId " +
-           "UNION " +
-           "SELECT t.userId1 FROM Team t WHERE t.userId2 = :userId)")
+    @Query("""
+        SELECT u FROM User u
+        JOIN Team t ON t.userId2 = u.id
+        WHERE t.userId1 = :userId
+    """)
     List<User> findTeamMembersByUserId(@Param("userId") Integer userId);
 }

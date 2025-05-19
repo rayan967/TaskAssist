@@ -253,7 +253,7 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
               <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                 <span className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3" />
-                  Assigned to {assignee?.name || `Member #${task.assignedTo}`}
+                  Assigned to {task.assignedTo === currentUserId ? 'Me' : (assignee?.name || `Member #${task.assignedTo}`)}
                 </span>
               </Badge>
             )}
@@ -262,7 +262,7 @@ export function TaskCard({ task, project, onEdit, onEditAssigned }: TaskCardProp
               <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                 <span className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3" />
-                  Assigned by {assigner?.name || `Member #${task.assignedBy}`}
+                  Assigned by {task.assignedBy === currentUserId ? 'Me' : (assigner?.name || `Member #${task.assignedBy}`)}
                 </span>
               </Badge>
             )}
