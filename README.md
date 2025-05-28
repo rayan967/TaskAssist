@@ -115,8 +115,8 @@ npm run dev                 # Vite on http://localhost:5000
 | Key                          | Default                                       | Notes                |
 | ---------------------------- | --------------------------------------------- | -------------------- |
 | `SPRING_DATASOURCE_URL`      | `jdbc:postgresql://localhost:5432/taskassist` | DB URL               |
-| `SPRING_DATASOURCE_USERNAME` | `postgres`                                    |                      |
-| `SPRING_DATASOURCE_PASSWORD` | `8426`                                        |                      |
+| `SPRING_DATASOURCE_USERNAME` | `postgres_user`                               |                      |
+| `SPRING_DATASOURCE_PASSWORD` | `user_password`                               |                      |
 | `JWT_SECRET`                 | `change-me-in-prod`                           |                      |
 | `SERVER_PORT`                | `8080`                                        | override Tomcat port |
 
